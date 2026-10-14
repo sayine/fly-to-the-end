@@ -99,7 +99,7 @@ namespace Template.Editor
         private static void BuildLoading(LoadingScreen s, RectTransform c)
         {
             FullscreenImage(s.transform, Background);
-            Text(c, "Title", PlayerSettings.productName.ToUpperInvariant(), 110, new Vector2(0.5f, 0.6f), new Vector2(1000, 200), TextColor);
+            Text(c, "Title", PlayerSettings.productName.ToUpperInvariant(), 110, new Vector2(0.5f, 0.6f), new Vector2(1000, 200), TextColor).gameObject.AddComponent<ProductNameLabel>();
             var barBg = Image(c, "ProgressBar", new Vector2(0.5f, 0.42f), new Vector2(600, 24), Secondary);
             var fill = Image(barBg, "Fill", Vector2.zero, Vector2.zero, Primary);
             fill.anchorMin = Vector2.zero;
@@ -113,7 +113,7 @@ namespace Template.Editor
         private static void BuildMenu(MenuScreen s, RectTransform c)
         {
             FullscreenImage(s.transform, new Color(0, 0, 0, 0)); // world (Menu scene) shows through
-            Text(c, "Title", PlayerSettings.productName.ToUpperInvariant(), 120, new Vector2(0.5f, 0.78f), new Vector2(1000, 220), TextColor);
+            Text(c, "Title", PlayerSettings.productName.ToUpperInvariant(), 120, new Vector2(0.5f, 0.78f), new Vector2(1000, 220), TextColor).gameObject.AddComponent<ProductNameLabel>();
             var best = Text(c, "Best", "BEST 0", 60, new Vector2(0.5f, 0.66f), new Vector2(800, 100), Accent);
             var play = Button(c, "PlayButton", "PLAY", new Vector2(0.5f, 0.3f), new Vector2(620, 180), Primary, 84, out _);
             var settings = Button(c, "SettingsButton", "SETTINGS", new Vector2(0.5f, 0.17f), new Vector2(460, 120), Secondary, 50, out _);

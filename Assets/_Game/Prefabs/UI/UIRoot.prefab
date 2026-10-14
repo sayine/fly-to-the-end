@@ -115,7 +115,7 @@ RectTransform:
   - {fileID: 5145859927503753914}
   - {fileID: 6206288462776885269}
   - {fileID: 8992166037497409546}
-  - {fileID: 6900180060341291353}
+  - {fileID: 5848722791317535230}
   - {fileID: 5701136143281050794}
   - {fileID: 3699301851252900492}
   m_Father: {fileID: 0}
@@ -808,7 +808,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6e15828988b68418596ec645a59aed2b, type: 3}
---- !u!224 &6900180060341291353 stripped
+--- !u!224 &5848722791317535230 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4136461498155912040, guid: 6e15828988b68418596ec645a59aed2b, type: 3}
   m_PrefabInstance: {fileID: 7515803769030816406}

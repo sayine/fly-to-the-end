@@ -12,7 +12,7 @@ Run top to bottom for every store build. Tick in the PR / release notes.
 - [ ] Splash screen: background color/logo set (Unity splash per license tier).
 - [ ] Orientation locked to portrait (`Tools/Template/Setup/Apply Player Settings` enforces it).
 - [ ] UI checked on a notched/Dynamic Island iPhone (safe area), a small iPhone (SE), and iPad 4:3 if shipping on iPad.
-- [ ] Placeholder UI text replaced (title on Loading/Menu screens).
+- [ ] Loading/Menu title reads correctly (it shows Product Name automatically; long names may need a smaller font).
 
 ## Ads & consent
 - [ ] SDK defines set for the store build: `HC_MAX`, `HC_CONSENT` (and `HC_FIREBASE` if used) for iOS.
