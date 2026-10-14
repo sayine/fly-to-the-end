@@ -169,3 +169,9 @@ Packages/packages-lock.json linguist-generated
 
 # Exceptions for .asset files such as lightning pre-baking
 LightingData.asset     binary
+
+# ---- hc_template additions ----
+*.framework/**          lfs
+*.xcframework/**        lfs
+*.wem                   lfs
+*.flac                  lfs

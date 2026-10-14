@@ -1,0 +1,11 @@
+{
+    "name": "Template.Services",
+    "rootNamespace": "Template.Services",
+    "references": [
+        "Template.Core",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ],
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14804eb83642a459d9a71df58b3ea509, type: 3}
+  m_Name: AdConfig
+  m_EditorClassIdentifier: 
+  _rules:
+    InterstitialMinSession: 2
+    InterstitialMinSecondsInSession: 90
+    InterstitialCooldownSeconds: 45
+    RewardedResetsInterstitialCooldown: 1
+  _bannerEnabled: 0
+  _consentTimeoutSeconds: 10
+  _maxLoadRetryDelay: 64
+  _mock:
+    InitDelay: 0.5
+    LoadDelay: 1
+    ShowDuration: 2
+    InterstitialFillRate: 1
+    RewardedFillRate: 1
+    ConsentGranted: 1
+    ConsentDelay: 0.5

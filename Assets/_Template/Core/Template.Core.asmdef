@@ -1,0 +1,7 @@
+{
+    "name": "Template.Core",
+    "rootNamespace": "Template.Core",
+    "references": [],
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

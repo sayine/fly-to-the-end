@@ -1,0 +1,11 @@
+{
+    "name": "Template.Flow",
+    "rootNamespace": "Template.Flow",
+    "references": [
+        "Template.Core",
+        "Template.Services",
+        "Template.UI"
+    ],
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

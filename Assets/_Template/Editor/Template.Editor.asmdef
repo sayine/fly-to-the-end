@@ -1,0 +1,8 @@
+{
+    "name": "Template.Editor",
+    "rootNamespace": "Template.Editor",
+    "references": ["Template.Core", "Template.Services", "Template.UI", "Template.Flow", "Template.Game", "Unity.TextMeshPro", "UnityEngine.UI", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime", "Unity.InputSystem"],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": false,
+    "noEngineReferences": false
+}

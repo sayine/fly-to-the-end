@@ -112,3 +112,17 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# ---- hc_template additions ----
+# macOS
+.DS_Store
+**/.DS_Store
+# Secrets (rule 8): commit Secrets.example.asset only
+/[Aa]ssets/_Game/Configs/Resources/Secrets.asset
+/[Aa]ssets/_Game/Configs/Resources/Secrets.asset.meta
+# Signing keys
+*.p12
+*.mobileprovision
+# Build outputs
+*.ipa
+/[Bb]uilds/

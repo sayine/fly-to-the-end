@@ -1,0 +1,7 @@
+{
+    "name": "Template.UI",
+    "rootNamespace": "Template.UI",
+    "references": ["Template.Core", "Template.Services", "Unity.TextMeshPro", "UnityEngine.UI"],
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

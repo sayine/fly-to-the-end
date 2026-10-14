@@ -1,0 +1,7 @@
+{
+    "name": "Template.Game",
+    "rootNamespace": "Game",
+    "references": ["Template.Core", "Template.Services", "Template.UI", "Template.Flow"],
+    "autoReferenced": true,
+    "noEngineReferences": false
+}
