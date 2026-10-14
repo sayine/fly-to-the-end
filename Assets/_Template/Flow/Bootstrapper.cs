@@ -86,15 +86,15 @@ namespace Template.Flow
             Progress(0.2f, "Loading...");
 
             // 3. Consent (UMP + ATT) must finish before ads initialize. Never block forever.
-            //    (With MAX, the UMP form + ATT prompt are shown inside the ad SDK init in step 4.)
-            var consentTimeout = _adConfig != null ? _adConfig.ConsentTimeoutSeconds : 10f;
+            //    Long timeout: the user may be reading the consent form / ATT prompt.
+            var consentTimeout = _adConfig != null ? _adConfig.ConsentTimeoutSeconds : 90f;
             var consentDone = false;
             consent.RequestConsent(() => consentDone = true);
             yield return WaitUntilOrTimeout(() => consentDone, consentTimeout, "Consent");
             Progress(0.5f, "Loading...");
 
-            // 4. Ads. Long timeout: the user may be reading the consent form / ATT prompt.
-            var adsTimeout = _adConfig != null ? _adConfig.AdInitTimeoutSeconds : 60f;
+            // 4. Ads.
+            var adsTimeout = _adConfig != null ? _adConfig.AdInitTimeoutSeconds : 15f;
             var adsDone = false;
             ads.Initialize(consent.CanRequestAds, consent.TrackingAllowed, () => adsDone = true);
             yield return WaitUntilOrTimeout(() => adsDone, adsTimeout, "Ads init");

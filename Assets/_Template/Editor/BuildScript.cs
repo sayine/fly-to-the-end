@@ -36,7 +36,7 @@ namespace Template.Editor
 
         private static void IOS(bool development)
         {
-            if (!Prepare()) return;
+            if (!Prepare(development)) return;
             var output = Arg("-outputPath") ?? Path.Combine(BuildsRoot, development ? "iOS-dev" : "iOS");
             Run(new BuildPlayerOptions
             {
@@ -48,7 +48,7 @@ namespace Template.Editor
             });
         }
 
-        private static bool Prepare()
+        private static bool Prepare(bool development)
         {
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.iOS, BuildTarget.iOS))
             {
@@ -67,20 +67,25 @@ namespace Template.Editor
                 return false;
             }
 
-            WarnAboutReleaseRisks();
+            WarnAboutReleaseRisks(development);
 
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.iOS)
                 EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.iOS, BuildTarget.iOS);
             return true;
         }
 
-        private static void WarnAboutReleaseRisks()
+        private static void WarnAboutReleaseRisks(bool development)
         {
             var defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.iOS);
-            if (!defines.Contains("HC_MAX"))
-                Log.Warn("HC_MAX not defined: this build uses MOCK ads (no revenue). Fine for prototypes/CPI tests only.");
-            else if (Resources.Load("Secrets") == null)
-                Log.Warn("HC_MAX defined but Assets/_Game/Configs/Resources/Secrets.asset is missing: ads will not initialize.");
+            if (!defines.Contains("HC_ADMOB"))
+                Log.Warn("HC_ADMOB not defined: this build uses MOCK ads (no revenue). Run Tools/Template/Setup/Configure AdMob.");
+            else if (!development) // dev builds always use Google test ad units
+            {
+                if (Resources.Load("Secrets") == null)
+                    Log.Warn("Release build without Assets/_Game/Configs/Resources/Secrets.asset: no ad units, ads disabled.");
+                if (ProjectSetup.AdMobIOSAppId() == ProjectSetup.AdMobSampleAppId)
+                    Log.Warn("AdMob App ID is Google's SAMPLE ID: set this game's App ID (Assets > Google Mobile Ads > Settings).");
+            }
             if (PlayerSettings.companyName == ProjectSetup.DefaultCompany)
                 Log.Warn("Company name is still the template placeholder.");
             if (PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.iOS) == ProjectSetup.DefaultBundleId)

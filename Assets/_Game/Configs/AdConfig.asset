@@ -18,7 +18,8 @@ MonoBehaviour:
     InterstitialCooldownSeconds: 45
     RewardedResetsInterstitialCooldown: 1
   _bannerEnabled: 0
-  _consentTimeoutSeconds: 10
+  _consentTimeoutSeconds: 90
+  _adInitTimeoutSeconds: 15
   _maxLoadRetryDelay: 64
   _mock:
     InitDelay: 0.5

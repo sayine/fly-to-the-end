@@ -6,8 +6,8 @@ Monetization is **ads only** (no IAP). Every decision should favor: speed, small
 ## Stack
 - Unity 6 (6000.x LTS), URP (mobile-optimized), C#
 - New Input System (touch + accelerometer/gyro for tilt)
-- Platform: **iOS only** (IL2CPP, ARM64, iOS 13+, latest Xcode)
-- Ads: AppLovin MAX mediation (behind `IAdService`; verify current Unity plugin install method in official docs before installing)
+- Platform: **iOS only** (IL2CPP, ARM64, iOS 15+ as required by current Xcode)
+- Ads: Google AdMob + Google UMP consent + Apple ATT (behind `IAdService`/`IConsentService`; see `Docs/SDK.md`). AppLovin MAX did not accept the account; mediation can come later.
 - Consent: Google UMP + Apple ATT
 - Analytics: Unity Analytics or Firebase (behind `IAnalyticsService`)
 

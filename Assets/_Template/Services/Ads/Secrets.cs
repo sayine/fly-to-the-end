@@ -12,8 +12,9 @@ namespace Template.Services.Ads
     {
         public const string ResourcesPath = "Secrets";
 
-        // The MAX SDK key lives in AppLovin > Integration Manager (AppLovinSettings), not here.
-        [Header("MAX ad unit IDs (iOS)")]
+        // Release builds only: development builds always use Google's test ad units.
+        // The AdMob App ID lives in Assets > Google Mobile Ads > Settings, not here.
+        [Header("AdMob ad unit IDs (iOS)")]
         [SerializeField] private string _interstitialId;
         [SerializeField] private string _rewardedId;
         [SerializeField] private string _bannerId;

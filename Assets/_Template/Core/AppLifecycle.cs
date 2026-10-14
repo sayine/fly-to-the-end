@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Template.Core
@@ -12,6 +13,9 @@ namespace Template.Core
         event Action Quitting;
         Coroutine Run(IEnumerator routine);
         void Stop(Coroutine routine);
+
+        /// <summary>Thread-safe: queues an action for the next Update on the main thread (SDK callbacks).</summary>
+        void RunOnMainThread(Action action);
     }
 
     /// <summary>
@@ -24,6 +28,10 @@ namespace Template.Core
         public event Action<float> Updated;
         public event Action<bool> PauseChanged;
         public event Action Quitting;
+
+        private readonly object _queueLock = new object();
+        private readonly List<Action> _queue = new List<Action>();
+        private readonly List<Action> _running = new List<Action>();
 
         public static AppLifecycle Create()
         {
@@ -39,7 +47,31 @@ namespace Template.Core
             if (routine != null) StopCoroutine(routine);
         }
 
-        private void Update() => Updated?.Invoke(Time.unscaledDeltaTime);
+        public void RunOnMainThread(Action action)
+        {
+            if (action == null) return;
+            lock (_queueLock) _queue.Add(action);
+        }
+
+        private void Update()
+        {
+            lock (_queueLock)
+            {
+                if (_queue.Count > 0)
+                {
+                    _running.AddRange(_queue);
+                    _queue.Clear();
+                }
+            }
+            for (var i = 0; i < _running.Count; i++)
+            {
+                try { _running[i](); }
+                catch (Exception e) { Debug.LogException(e); }
+            }
+            _running.Clear();
+
+            Updated?.Invoke(Time.unscaledDeltaTime);
+        }
         private void OnApplicationPause(bool paused) => PauseChanged?.Invoke(paused);
         private void OnApplicationQuit() => Quitting?.Invoke();
     }

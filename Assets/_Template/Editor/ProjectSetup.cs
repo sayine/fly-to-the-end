@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -15,7 +16,8 @@ namespace Template.Editor
     {
         public const string DefaultCompany = "YourCompany";
         public const string DefaultProduct = "HC Template";
-        public const string DefaultBundleId = "com.sayine.hctemplate"; // template test app in AppLovin/AdMob
+        public const string MinIOSVersion = "15.0";
+        public const string DefaultBundleId = "com.sayine.hctemplate"; // template test app in AdMob
         private const string MobileRpAssetPath = "Assets/Settings/Mobile_RPAsset.asset";
         private const string TmpEssentialsFolder = "Assets/TextMesh Pro";
 
@@ -26,6 +28,7 @@ namespace Template.Editor
             ApplyRenderSettings();
             ImportTmpEssentials();
             ConfigureNativePlugins();
+            ConfigureAdMob();
             AssetDatabase.SaveAssets();
             Log.Info("Project settings applied.");
         }
@@ -51,9 +54,9 @@ namespace Template.Editor
             PlayerSettings.allowedAutorotateToLandscapeLeft = false;
             PlayerSettings.allowedAutorotateToLandscapeRight = false;
 
-            // iOS: Unity 6 minimum.
-            if (string.CompareOrdinal(PlayerSettings.iOS.targetOSVersionString, "13.0") < 0)
-                PlayerSettings.iOS.targetOSVersionString = "13.0";
+            // iOS: current Xcode builds only for iOS 15+ (PodfilePatcher aligns the CocoaPods targets).
+            if (new System.Version(PlayerSettings.iOS.targetOSVersionString) < new System.Version(MinIOSVersion))
+                PlayerSettings.iOS.targetOSVersionString = MinIOSVersion;
 
             SetActiveInputHandlerNewOnly();
             Log.Info($"Player settings: {PlayerSettings.companyName} / {PlayerSettings.productName}, portrait, iOS IL2CPP, stripping Medium.");
@@ -146,7 +149,7 @@ namespace Template.Editor
             if (AssetDatabase.LoadMainAssetAtPath(example) == null) { Log.Error($"{example} missing. Run Tools/Template/Generate Base Scenes."); return; }
             EditorUtil.EnsureFolder("Assets/_Game/Configs/Resources");
             AssetDatabase.CopyAsset(example, target);
-            Log.Info($"Created {target} (git-ignored). Fill in the MAX SDK key and ad unit IDs.");
+            Log.Info($"Created {target} (git-ignored). Fill in the AdMob ad unit IDs.");
         }
 
         /// <summary>Native sources under _Template/Plugins/iOS compile for iOS only.</summary>
@@ -159,8 +162,57 @@ namespace Template.Editor
                 importer.SetCompatibleWithAnyPlatform(false);
                 importer.SetCompatibleWithEditor(false);
                 importer.SetCompatibleWithPlatform(BuildTarget.iOS, true);
+                if (path.EndsWith("HCTracking.mm"))
+                    importer.SetPlatformData(BuildTarget.iOS, "FrameworkDependencies", "AppTrackingTransparency;");
                 importer.SaveAndReimport();
             }
+        }
+
+        // ---------- AdMob ----------
+        public const string AdMobSampleAppId = "ca-app-pub-3940256099942544~1458002511"; // Google's iOS sample app
+        private const string AdMobSettingsPath = "Assets/GoogleMobileAds/Resources/GoogleMobileAdsSettings.asset";
+        private const string AdMobDefine = "HC_ADMOB";
+        private const string DefaultTrackingText =
+            "Your data will be used to provide you a better and personalized ad experience.";
+
+        /// <summary>
+        /// Ensures Google Mobile Ads settings exist (App ID defaults to Google's sample ID until the game's own
+        /// is entered), sets the ATT prompt text, and enables HC_ADMOB for iOS. Never overwrites a real App ID.
+        /// </summary>
+        [MenuItem("Tools/Template/Setup/Configure AdMob", priority = 5)]
+        public static void ConfigureAdMob()
+        {
+            var settings = AssetDatabase.LoadMainAssetAtPath(AdMobSettingsPath);
+            if (settings == null)
+            {
+                var type = TypeCache.GetTypesDerivedFrom<ScriptableObject>()
+                    .FirstOrDefault(t => t.FullName == "GoogleMobileAds.Editor.GoogleMobileAdsSettings");
+                if (type == null) { Log.Error("Google Mobile Ads package not installed."); return; }
+                EditorUtil.EnsureFolder(Path.GetDirectoryName(AdMobSettingsPath));
+                settings = ScriptableObject.CreateInstance(type);
+                AssetDatabase.CreateAsset(settings, AdMobSettingsPath);
+            }
+
+            var so = new SerializedObject(settings);
+            var appId = so.FindProperty("adMobIOSAppId");
+            var tracking = so.FindProperty("userTrackingUsageDescription");
+            if (appId == null || tracking == null) { Log.Error("GoogleMobileAdsSettings fields changed (plugin update?)."); return; }
+            if (string.IsNullOrEmpty(appId.stringValue)) appId.stringValue = AdMobSampleAppId;
+            if (string.IsNullOrEmpty(tracking.stringValue)) tracking.stringValue = DefaultTrackingText;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            var defines = PlayerSettings.GetScriptingDefineSymbols(NamedBuildTarget.iOS);
+            if (!defines.Split(';').Contains(AdMobDefine))
+                PlayerSettings.SetScriptingDefineSymbols(NamedBuildTarget.iOS, string.IsNullOrEmpty(defines) ? AdMobDefine : defines + ";" + AdMobDefine);
+
+            AssetDatabase.SaveAssets();
+            Log.Info($"AdMob: iOS App ID {(appId.stringValue == AdMobSampleAppId ? "= Google SAMPLE (replace per game)" : appId.stringValue)}, {AdMobDefine} enabled for iOS.");
+        }
+
+        public static string AdMobIOSAppId()
+        {
+            var settings = AssetDatabase.LoadMainAssetAtPath(AdMobSettingsPath);
+            return settings == null ? null : new SerializedObject(settings).FindProperty("adMobIOSAppId")?.stringValue;
         }
 
         private static void SetInt(SerializedObject so, string name, int value)

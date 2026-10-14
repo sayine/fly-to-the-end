@@ -15,15 +15,15 @@ Run top to bottom for every store build. Tick in the PR / release notes.
 - [ ] Loading/Menu title reads correctly (it shows Product Name automatically; long names may need a smaller font).
 
 ## Ads & consent
-- [ ] SDK defines set for the store build: `HC_MAX` (ads + consent) and `HC_FIREBASE` if used. Per-game IDs done (see `Docs/SDK.md` > Per game).
+- [ ] `HC_ADMOB` defined (and `HC_FIREBASE` if used). Per-game IDs done (see `Docs/SDK.md` > Per game): AdMob App ID is NOT Google's sample ID; release ad unit IDs in `Secrets.asset`.
 - [ ] `Assets/_Game/Configs/Resources/Secrets.asset` exists locally/CI with **production** ad unit IDs (never committed).
-- [ ] **Test ads OFF**: MAX test mode / test device IDs removed, Mediation Debugger not reachable in release.
-- [ ] Consent flow verified on a fresh install in an EEA region (VPN or UMP debug geography) and ATT prompt shows on iOS.
+- [ ] Release build (not dev): only release builds use live ad units. Never tap your own live ads.
+- [ ] Consent form verified on a fresh install (dev build + test device hashed ID simulates the EEA), then the ATT prompt.
 - [ ] Settings > "Privacy options" button opens the UMP form when required.
 - [ ] `AdConfig.asset` frequency rules reviewed (first interstitial: session ≥2 or ≥90 s; cooldown 45 s).
 - [ ] Rewarded "Continue" hidden when no ad is loaded (airplane mode test) and the game still works with no network.
-- [ ] `app-ads.txt` published on the developer website domain listed in the store; MAX/network lines included.
-- [ ] iOS: `NSUserTrackingUsageDescription` present in Info.plist; SKAdNetwork IDs added (MAX Integration Manager).
+- [ ] After release: App Store listing linked in AdMob; `app-ads.txt` (AdMob line + any mediated networks) on the developer website.
+- [ ] ATT prompt text (Google Mobile Ads Settings → User Tracking Usage Description) fits the game; the plugin adds it and SKAdNetwork IDs to Info.plist.
 
 ## Analytics
 - [ ] Standard events visible in the provider's debug view: `session_start`, `level_start`, `level_end`, `game_over`, `rewarded_offered`, `rewarded_completed`, `interstitial_shown`, `tutorial_complete`.
