@@ -12,17 +12,19 @@ namespace Template.Services.Ads
     {
         public const string ResourcesPath = "Secrets";
 
-        [SerializeField] private string _maxSdkKey;
-        [Header("iOS ad units")]
+        // The MAX SDK key lives in AppLovin > Integration Manager (AppLovinSettings), not here.
+        [Header("MAX ad unit IDs (iOS)")]
         [SerializeField] private string _interstitialId;
         [SerializeField] private string _rewardedId;
         [SerializeField] private string _bannerId;
-
-        public string MaxSdkKey => _maxSdkKey;
+        [Header("Debug (development builds only)")]
+        [Tooltip("Google UMP test device hashed ID (printed by the Google CMP SDK in the Xcode log). Forces the consent form on this device.")]
+        [SerializeField] private string _googleTestDeviceHashedId;
 
         public string InterstitialId => _interstitialId;
         public string RewardedId => _rewardedId;
         public string BannerId => _bannerId;
+        public string GoogleTestDeviceHashedId => _googleTestDeviceHashedId;
 
         /// <summary>Returns null when the git-ignored asset is missing (fresh clone): services fall back to mocks/no ads.</summary>
         public static Secrets Load() => Resources.Load<Secrets>(ResourcesPath);

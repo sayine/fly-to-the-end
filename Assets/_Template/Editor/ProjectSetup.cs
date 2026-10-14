@@ -15,7 +15,7 @@ namespace Template.Editor
     {
         public const string DefaultCompany = "YourCompany";
         public const string DefaultProduct = "HC Template";
-        public const string DefaultBundleId = "com.yourcompany.hctemplate";
+        public const string DefaultBundleId = "com.sayine.hctemplate"; // template test app in AppLovin/AdMob
         private const string MobileRpAssetPath = "Assets/Settings/Mobile_RPAsset.asset";
         private const string TmpEssentialsFolder = "Assets/TextMesh Pro";
 
@@ -38,7 +38,7 @@ namespace Template.Editor
 
             var ios = NamedBuildTarget.iOS;
             var id = PlayerSettings.GetApplicationIdentifier(ios);
-            if (string.IsNullOrEmpty(id) || id.StartsWith("com.DefaultCompany") || id.StartsWith("com.Unity-Technologies"))
+            if (string.IsNullOrEmpty(id) || id.StartsWith("com.DefaultCompany") || id.StartsWith("com.Unity-Technologies") || id == "com.yourcompany.hctemplate")
                 PlayerSettings.SetApplicationIdentifier(ios, DefaultBundleId);
             PlayerSettings.SetScriptingBackend(ios, ScriptingImplementation.IL2CPP); // iOS is IL2CPP + ARM64 only
             PlayerSettings.SetManagedStrippingLevel(ios, ManagedStrippingLevel.Medium);

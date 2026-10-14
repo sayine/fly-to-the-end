@@ -3,7 +3,7 @@
 Run top to bottom for every store build. Tick in the PR / release notes.
 
 ## Identity & versioning
-- [ ] `Player Settings`: company name, product name, bundle ID changed from the template placeholders (`YourCompany`, `HC Template`, `com.yourcompany.hctemplate`). `BuildScript` warns if they weren't.
+- [ ] `Player Settings`: company name, product name, bundle ID changed from the template placeholders (`YourCompany`, `HC Template`, `com.sayine.hctemplate`). `BuildScript` warns if they weren't.
 - [ ] Version bumped (`Player Settings > Version`) and build number bumped (`Tools/Template/Bump Build Number`, or `-buildVersion` / `-buildNumber` in CI). App Store Connect rejects a reused build number.
 - [ ] `Docs/SPEC.md` matches what shipped (nothing out-of-scope snuck in).
 
@@ -15,7 +15,7 @@ Run top to bottom for every store build. Tick in the PR / release notes.
 - [ ] Loading/Menu title reads correctly (it shows Product Name automatically; long names may need a smaller font).
 
 ## Ads & consent
-- [ ] SDK defines set for the store build: `HC_MAX`, `HC_CONSENT` (and `HC_FIREBASE` if used) for iOS.
+- [ ] SDK defines set for the store build: `HC_MAX` (ads + consent) and `HC_FIREBASE` if used. Per-game IDs done (see `Docs/SDK.md` > Per game).
 - [ ] `Assets/_Game/Configs/Resources/Secrets.asset` exists locally/CI with **production** ad unit IDs (never committed).
 - [ ] **Test ads OFF**: MAX test mode / test device IDs removed, Mediation Debugger not reachable in release.
 - [ ] Consent flow verified on a fresh install in an EEA region (VPN or UMP debug geography) and ATT prompt shows on iOS.

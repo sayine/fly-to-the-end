@@ -59,6 +59,8 @@ namespace Template.Services.Ads
         [SerializeField] private bool _bannerEnabled;
         [Tooltip("Bootstrapper continues without ads if consent hasn't finished by then.")]
         [SerializeField, Min(1)] private float _consentTimeoutSeconds = 10f;
+        [Tooltip("Max wait for ad SDK init at boot. MAX shows the consent form + ATT prompt inside init, so keep it long.")]
+        [SerializeField, Min(1)] private float _adInitTimeoutSeconds = 60f;
         [Tooltip("Retry delays for failed loads double up to this cap (seconds).")]
         [SerializeField, Min(1)] private float _maxLoadRetryDelay = 64f;
         [SerializeField] private MockAdSettings _mock = MockAdSettings.Default;
@@ -66,6 +68,7 @@ namespace Template.Services.Ads
         public AdRules Rules => _rules;
         public bool BannerEnabled => _bannerEnabled;
         public float ConsentTimeoutSeconds => _consentTimeoutSeconds;
+        public float AdInitTimeoutSeconds => _adInitTimeoutSeconds;
         public float MaxLoadRetryDelay => _maxLoadRetryDelay;
         public MockAdSettings Mock => _mock;
     }

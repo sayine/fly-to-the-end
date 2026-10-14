@@ -86,22 +86,25 @@ namespace Template.Flow
             Progress(0.2f, "Loading...");
 
             // 3. Consent (UMP + ATT) must finish before ads initialize. Never block forever.
-            var timeout = _adConfig != null ? _adConfig.ConsentTimeoutSeconds : 10f;
+            //    (With MAX, the UMP form + ATT prompt are shown inside the ad SDK init in step 4.)
+            var consentTimeout = _adConfig != null ? _adConfig.ConsentTimeoutSeconds : 10f;
             var consentDone = false;
             consent.RequestConsent(() => consentDone = true);
-            yield return WaitUntilOrTimeout(() => consentDone, timeout, "Consent");
+            yield return WaitUntilOrTimeout(() => consentDone, consentTimeout, "Consent");
             Progress(0.5f, "Loading...");
 
-            analytics.Initialize(consent.TrackingAllowed);
-            analytics.SessionStart(save.Data.SessionCount);
-
-            // 4. Ads.
+            // 4. Ads. Long timeout: the user may be reading the consent form / ATT prompt.
+            var adsTimeout = _adConfig != null ? _adConfig.AdInitTimeoutSeconds : 60f;
             var adsDone = false;
             ads.Initialize(consent.CanRequestAds, consent.TrackingAllowed, () => adsDone = true);
-            yield return WaitUntilOrTimeout(() => adsDone, timeout, "Ads init");
+            yield return WaitUntilOrTimeout(() => adsDone, adsTimeout, "Ads init");
+
+            // 5. Analytics after consent/ATT are final, so tracking mode is correct.
+            analytics.Initialize(consent.TrackingAllowed);
+            analytics.SessionStart(save.Data.SessionCount);
             Progress(1f, "Ready");
 
-            // 5. Game flow takes over (loads Menu).
+            // 6. Game flow takes over (loads Menu).
             _booted = true;
             var flow = GameFlow.Create();
             ServiceLocator.Register(flow);

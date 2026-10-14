@@ -21,7 +21,8 @@ TEMPLATE="$(cd "$(dirname "$0")/.." && pwd)"
 
 [[ "$NAME" =~ ^[A-Za-z0-9][A-Za-z0-9\ .\'!-]*$ ]] || die "game name may only use letters, digits, spaces and . ' ! -"
 [[ "$BUNDLE_ID" =~ ^[A-Za-z][A-Za-z0-9-]*(\.[A-Za-z0-9-]+)+$ ]] || die "invalid iOS bundle ID '$BUNDLE_ID' (e.g. com.yourcompany.gamename; no underscores)"
-[[ "$BUNDLE_ID" != "com.yourcompany.hctemplate" ]] || die "use the new game's own bundle ID"
+TEMPLATE_BUNDLE_ID="$(perl -0ne 'print $1 if /  applicationIdentifier:\n(?:    .*\n)*?    iPhone: (.*)/' "$TEMPLATE/ProjectSettings/ProjectSettings.asset")"
+[[ "$BUNDLE_ID" != "$TEMPLATE_BUNDLE_ID" ]] || die "use the new game's own bundle ID (not the template's $TEMPLATE_BUNDLE_ID)"
 
 SLUG="$(echo "$NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr -cd 'a-z0-9_-')"
 DEST="${3:-$(dirname "$TEMPLATE")/$SLUG}"
@@ -73,7 +74,7 @@ Done: $DEST
 Next:
   1. Unity Hub > Add > $DEST  (first open imports everything; takes a few minutes)
   2. Fill in Docs/SPEC.md (one core mechanic)
-  3. Tools/Template/Setup/Create Secrets From Example (when ads are integrated)
+  3. Per-game ad/consent IDs: follow Docs/SDK.md > "Per game"
   4. Open a Claude Code session in $DEST and ask it to build the game from SPEC.md
 Template updates later:  git fetch template && git merge template/$BRANCH
 EOF
