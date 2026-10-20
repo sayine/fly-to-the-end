@@ -1,4 +1,4 @@
-# Game: <name>
+# Game: Paper Plane
 
 Core mechanic (1 sentence):
 
