@@ -75,7 +75,7 @@ namespace Template.Tests
         public void TearDown()
         {
             EventBus<GameOverEvent>.Unsubscribe(OnGameOver);
-            Time.timeScale = 1f;
+            Bootstrapper.Shutdown(); // next test that loads Boot starts fresh
         }
 
         private void OnGameOver(GameOverEvent e) => _lastGameOver = e;

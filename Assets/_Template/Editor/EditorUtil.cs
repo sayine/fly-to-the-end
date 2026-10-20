@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Template.Editor
 {
-    internal static class EditorUtil
+    public static class EditorUtil
     {
         public static void EnsureFolder(string path)
         {

@@ -19,6 +19,10 @@ namespace Template.UI.Screens
         [SerializeField] private Button _continueButton;
         [SerializeField] private Button _retryButton;
         [SerializeField] private Button _menuButton;
+        [Tooltip("TMP SetText formats. {0:0.0} = one decimal place. Displayed value = score * _scoreScale.")]
+        [SerializeField] private string _scoreFormat = "{0}";
+        [SerializeField] private string _bestFormat = "BEST {0}";
+        [SerializeField] private float _scoreScale = 1f;
 
         private IAdService _ads;
         private IAnalyticsService _analytics;
@@ -45,8 +49,8 @@ namespace Template.UI.Screens
         private void OnGameOver(GameOverEvent e)
         {
             _continueAllowed = e.CanContinue;
-            if (_scoreText != null) _scoreText.SetText("{0}", e.Score);
-            if (_bestText != null) _bestText.SetText("BEST {0}", e.BestScore);
+            if (_scoreText != null) _scoreText.SetText(_scoreFormat, e.Score * _scoreScale);
+            if (_bestText != null) _bestText.SetText(_bestFormat, e.BestScore * _scoreScale);
             if (_newBestLabel != null) _newBestLabel.SetActive(e.IsNewBest);
             SetButtonsInteractable(true);
             RefreshContinue();

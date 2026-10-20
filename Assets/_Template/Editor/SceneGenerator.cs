@@ -28,7 +28,7 @@ namespace Template.Editor
 
         private static string BootPath => $"{ScenesFolder}/{SceneNames.Boot}.unity";
         private static string MenuPath => $"{ScenesFolder}/{SceneNames.Menu}.unity";
-        private static string GamePath => $"{ScenesFolder}/{SceneNames.Game}.unity";
+        public static string GamePath => $"{ScenesFolder}/{SceneNames.Game}.unity";
         private static string DemoPath => $"{GameScenesFolder}/{SceneNames.DemoTilt}.unity";
 
         private static readonly Color SkyColor = new Color(0.55f, 0.75f, 0.95f);
@@ -62,7 +62,9 @@ namespace Template.Editor
             EditorUtil.EnsureFolder(GameScenesFolder);
             if (force || !Exists(BootPath)) BuildBoot(configs);
             if (force || !Exists(MenuPath)) BuildMenu(mats);
-            if (force || !Exists(GamePath)) BuildGame(configs, mats);
+            var gameBuilder = FindGameContentBuilder();
+            if (gameBuilder != null) gameBuilder.Invoke(null, new object[] { force });
+            else if (force || !Exists(GamePath)) BuildGame(configs, mats);
             if (force || !Exists(DemoPath)) BuildDemo(configs, mats);
 
             EditorBuildSettings.scenes = new[]
@@ -78,7 +80,20 @@ namespace Template.Editor
             Log.Info($"Base scenes ready (force={force}). Build order: Boot, Menu, Game (+ Demo_Tilt disabled).");
         }
 
-        private static bool Exists(string path) => AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null;
+        public static bool Exists(string path) => AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null;
+
+        /// <summary>The game's [GameContentBuilder] method (static void Build(bool force)), or null for the placeholder.</summary>
+        private static System.Reflection.MethodInfo FindGameContentBuilder()
+        {
+            var methods = TypeCache.GetMethodsWithAttribute<GameContentBuilderAttribute>();
+            if (methods.Count == 0) return null;
+            if (methods.Count > 1) Log.Warn($"{methods.Count} [GameContentBuilder] methods found; using {methods[0].DeclaringType?.Name}.{methods[0].Name}.");
+            var m = methods[0];
+            var ps = m.GetParameters();
+            if (m.IsStatic && ps.Length == 1 && ps[0].ParameterType == typeof(bool)) return m;
+            Log.Error($"[GameContentBuilder] {m.DeclaringType?.Name}.{m.Name} must be 'static void Build(bool force)'. Using the placeholder Game scene.");
+            return null;
+        }
 
         // ---------- Configs ----------
         // NewScene() unloads unreferenced assets, so cached references go stale between scenes:
@@ -122,7 +137,8 @@ namespace Template.Editor
         }
 
         // ---------- Scenes ----------
-        private static Scene NewScene()
+        /// <summary>Empty scene with the template's flat lighting (no GI, no skybox, no fog).</summary>
+        public static Scene NewScene()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             RenderSettings.ambientMode = AmbientMode.Flat;

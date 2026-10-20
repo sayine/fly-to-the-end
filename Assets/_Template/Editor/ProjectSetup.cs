@@ -224,7 +224,7 @@ namespace Template.Editor
         }
     }
 
-    internal static class Log
+    public static class Log
     {
         public static void Info(string msg) => Debug.Log("[Template] " + msg);
         public static void Warn(string msg) => Debug.LogWarning("[Template] WARN " + msg);

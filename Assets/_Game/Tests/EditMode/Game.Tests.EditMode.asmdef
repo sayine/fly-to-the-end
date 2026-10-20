@@ -1,0 +1,22 @@
+{
+    "name": "Game.Tests.EditMode",
+    "rootNamespace": "Game.Tests",
+    "references": [
+        "Template.Core",
+        "Template.Services",
+        "Template.Game",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ]
+}

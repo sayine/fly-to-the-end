@@ -33,6 +33,22 @@ namespace Template.Flow
 
         internal static void ResetStatics() => _booted = false;
 
+        /// <summary>
+        /// Tears down everything Boot created (the "[...]" DontDestroyOnLoad roots, services, event handlers) so
+        /// the next Boot starts fresh. For PlayMode tests: call it in TearDown of any test that loads Boot.
+        /// </summary>
+        public static void Shutdown()
+        {
+            var probe = new GameObject("[ShutdownProbe]");
+            DontDestroyOnLoad(probe);
+            foreach (var root in probe.scene.GetRootGameObjects())
+                if (root.name.StartsWith("[")) DestroyImmediate(root); // includes the probe
+            ServiceLocator.Clear();
+            EventBus.ClearAll();
+            Time.timeScale = 1f;
+            _booted = false;
+        }
+
         private void Start()
         {
             if (_booted)

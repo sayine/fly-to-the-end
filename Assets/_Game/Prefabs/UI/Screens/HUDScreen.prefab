@@ -158,6 +158,8 @@ MonoBehaviour:
   _group: {fileID: 5369278312019837472}
   _scoreText: {fileID: 7558981424245082320}
   _pauseButton: {fileID: 2057829038986478776}
+  _scoreFormat: '{0:0.0}'
+  _scoreScale: 0.1
 --- !u!1 &3305123123296726061
 GameObject:
   m_ObjectHideFlags: 0

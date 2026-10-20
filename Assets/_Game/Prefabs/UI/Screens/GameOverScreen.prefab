@@ -720,6 +720,9 @@ MonoBehaviour:
   _continueButton: {fileID: 8391485427850786950}
   _retryButton: {fileID: 1795549171618416802}
   _menuButton: {fileID: 7528484923606017116}
+  _scoreFormat: '{0:0.0}s'
+  _bestFormat: BEST {0:0.0}s
+  _scoreScale: 0.1
 --- !u!1 &5264501847308505159
 GameObject:
   m_ObjectHideFlags: 0

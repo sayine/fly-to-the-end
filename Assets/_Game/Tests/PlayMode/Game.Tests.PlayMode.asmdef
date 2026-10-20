@@ -1,0 +1,21 @@
+{
+    "name": "Game.Tests.PlayMode",
+    "rootNamespace": "Game.Tests",
+    "references": [
+        "Template.Core",
+        "Template.Services",
+        "Template.UI",
+        "Template.Flow",
+        "Template.Game",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ]
+}

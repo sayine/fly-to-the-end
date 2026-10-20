@@ -9,6 +9,10 @@ namespace Template.UI.Screens
     {
         [SerializeField] private TMP_Text _scoreText;
         [SerializeField] private Button _pauseButton;
+        [Tooltip("TMP SetText format. {0:0.0} = one decimal place (e.g. a time score stored in tenths with scale 0.1).")]
+        [SerializeField] private string _scoreFormat = "{0}";
+        [Tooltip("Displayed value = Score * scale (Score is an int, so time scores are stored in tenths/hundredths).")]
+        [SerializeField] private float _scoreScale = 1f;
 
         protected override void OnInit()
         {
@@ -28,7 +32,7 @@ namespace Template.UI.Screens
 
         private void SetScore(int score)
         {
-            if (_scoreText != null) _scoreText.SetText("{0}", score); // SetText with args doesn't allocate
+            if (_scoreText != null) _scoreText.SetText(_scoreFormat, score * _scoreScale); // SetText with args doesn't allocate
         }
     }
 }
