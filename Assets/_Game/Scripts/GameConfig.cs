@@ -26,14 +26,14 @@ namespace Game
 
         [Header("Tilt steering (per axis, applied after InputConfig)")]
         [Tooltip("Bank input multiplier (tilt left/right).")]
-        [SerializeField, Range(0.1f, 3f)] private float _bankSensitivity = 1f;
+        [SerializeField, Range(0.1f, 3f)] private float _bankSensitivity = 1.3f;
         [Tooltip("Pitch input multiplier (tilt forward/back).")]
-        [SerializeField, Range(0.1f, 3f)] private float _pitchSensitivity = 1f;
-        [SerializeField, Range(0f, 0.5f)] private float _bankDeadZone = 0.04f;
-        [SerializeField, Range(0f, 0.5f)] private float _pitchDeadZone = 0.08f;
+        [SerializeField, Range(0.1f, 3f)] private float _pitchSensitivity = 1.2f;
+        [SerializeField, Range(0f, 0.5f)] private float _bankDeadZone = 0.03f;
+        [SerializeField, Range(0f, 0.5f)] private float _pitchDeadZone = 0.05f;
         [Tooltip("Response curve: 1 = linear, >1 = finer control near neutral.")]
-        [SerializeField, Range(1f, 3f)] private float _bankExpo = 1.3f;
-        [SerializeField, Range(1f, 3f)] private float _pitchExpo = 1.5f;
+        [SerializeField, Range(1f, 3f)] private float _bankExpo = 1.15f;
+        [SerializeField, Range(1f, 3f)] private float _pitchExpo = 1.25f;
         [Tooltip("Extra low-pass per axis (1/s). Higher = more responsive.")]
         [SerializeField, Range(1f, 40f)] private float _bankSmoothing = 14f;
         [SerializeField, Range(1f, 40f)] private float _pitchSmoothing = 10f;

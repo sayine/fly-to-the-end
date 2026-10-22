@@ -48,7 +48,8 @@ namespace Game.Flight
     /// The nose is never simulated as a free rigid body: orientation = flight path + AoA + bank, so the plane
     /// always weathervanes into its velocity and can't gimbal-lock or spin out.
     ///   Lift  = LiftCoef * v² * LiftCurve(AoA), perpendicular to the path in the vertical plane, capped at MaxLiftG (soft knee).
-    ///   Drag  = (DragCoef + InducedDrag * AoA²) * v², opposite to the path.
+    ///   Drag  = (DragCoef + InducedDrag * AoA²) * v², opposite to the path, minus GlideAssist * DragCoef * min(v, Cruise)².
+    ///   Vertical damping (not while stalled) settles the glide instead of a climb/dive oscillation.
     ///   Turn  = yaw rate Bank * TurnRate applied directly to the velocity (no sideslip).
     ///   Stall = speed &lt; StallSpeed or AoA &gt; StallAngle: nose drops, lift collapses, gentle wobble, recover by gaining speed.
     /// </summary>
@@ -111,6 +112,10 @@ namespace Game.Flight
 
             var aoaRad = s.EffectiveAoa * Mathf.Deg2Rad;
             var drag = (cfg.DragCoef + cfg.InducedDragCoef * aoaRad * aoaRad) * speed * speed;
+            // Arcade assist: cancel part of the parasitic drag up to cruise speed (induced drag stays, so
+            // pulling up still bleeds speed and stalls).
+            var cruise = Mathf.Min(speed, cfg.CruiseSpeed);
+            drag -= cfg.GlideAssist * cfg.DragCoef * cruise * cruise;
 
             // Banked turn: rotate the path around world up.
             var yaw = s.EffectiveBank * cfg.TurnRate * dt;
@@ -122,7 +127,9 @@ namespace Game.Flight
                 s.Heading = turn * s.Heading;
             }
 
-            return gravity * cfg.GravityScale + liftDir * lift - dir * drag;
+            var acceleration = gravity * cfg.GravityScale + liftDir * lift - dir * drag;
+            if (!s.Stalled) acceleration.y -= cfg.VerticalDamping * s.Velocity.y; // calm glide, no phugoid
+            return acceleration;
         }
 
         /// <summary>Identity below cap * (1 - softness), then eases into cap (continuous slope, never exceeds cap).</summary>

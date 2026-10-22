@@ -47,7 +47,7 @@ namespace Game.Tests
             yield return WaitFor(() => plane.CurrentPhase == PaperPlane.Phase.Crashed, 20f, "crash");
             var flight = Time.time - launchTime;
             Debug.Log($"[Test] untouched flight {flight:0.00}s, crash at {plane.transform.position}, score {_score}");
-            Assert.Greater(flight, 1f, "plane should glide for more than a second");
+            Assert.Greater(flight, 4f, "an untouched straight throw should glide well across the room");
             Assert.Greater(plane.transform.position.y, -0.5f, "fell through the floor");
 
             yield return WaitFor(() => flow.State == GameState.GameOver, 5f, "GameOver after crash settle");

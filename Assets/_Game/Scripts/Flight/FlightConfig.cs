@@ -5,7 +5,8 @@ namespace Game.Flight
     /// <summary>
     /// Arcade paper-plane flight model and launch tuning (SPEC "Flight model"). Forces are accelerations
     /// (mass independent). Every float has a [Range] so DevTuningPanel can draw a slider for it.
-    /// Defaults give a ~10:1 glide at ~5 m/s in still air (checked by FlightModelTests).
+    /// Defaults: ~10:1 physical glide at ~5 m/s, lifted to ~30:1 by the arcade glide assist, so untouched
+    /// throws fly 10-25 s in open air (checked by FlightModelTests).
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Configs/Flight Config", fileName = "FlightConfig")]
     public sealed class FlightConfig : ScriptableObject
@@ -25,6 +26,14 @@ namespace Game.Flight
         [SerializeField, Range(0f, 3f)] private float _inducedDragCoef = 0.7f;
         [Tooltip("Lift factor by angle of attack in degrees. Peaks just below StallAngle.")]
         [SerializeField] private AnimationCurve _liftCurve = DefaultLiftCurve();
+
+        [Header("Arcade glide assist")]
+        [Tooltip("Fraction of parasitic drag cancelled up to CruiseSpeed (arcade 'paper magic'). 0 = plain glider (~10:1), 0.8 ≈ 30:1: long flights that end on a crash, not on the floor.")]
+        [SerializeField, Range(0f, 1f)] private float _glideAssist = 0.8f;
+        [Tooltip("Speed (m/s) up to which drag is cancelled. Faster throws slow back down to it.")]
+        [SerializeField, Range(1f, 12f)] private float _cruiseSpeed = 5f;
+        [Tooltip("Damps vertical speed (1/s) so the plane settles into a calm glide instead of climb-and-dive oscillation. Off while stalled.")]
+        [SerializeField, Range(0f, 5f)] private float _verticalDamping = 1f;
 
         [Header("Pitch (angle of attack)")]
         [Tooltip("AoA (deg) with no pitch input. Sets the glide speed together with LiftCoef.")]
@@ -99,6 +108,9 @@ namespace Game.Flight
         public float LiftCapSoftness => _liftCapSoftness;
         public float DragCoef => _dragCoef;
         public float InducedDragCoef => _inducedDragCoef;
+        public float GlideAssist => _glideAssist;
+        public float CruiseSpeed => _cruiseSpeed;
+        public float VerticalDamping => _verticalDamping;
         public AnimationCurve LiftCurve => _liftCurve;
         public float TrimAoa => _trimAoa;
         public float PitchUpAuthority => _pitchUpAuthority;

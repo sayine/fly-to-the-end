@@ -26,13 +26,14 @@ namespace Game.Editor
         private const string InputConfigPath = ConfigsFolder + "/InputConfig.asset";
         private const string ScreensFolder = "Assets/_Game/Prefabs/UI/Screens";
 
-        // Room interior (SPEC: ≈ 20 m × 14 m × 5 m). The plane launches from the -Z end toward +Z.
-        private static readonly Vector3 RoomSize = new Vector3(14f, 5f, 20f);
+        // Room interior. SPEC suggested ≈ 20 × 14 × 5 m; play-testing found that too small, so it's a big loft.
+        // The plane launches from a tall shelf at the -Z end toward +Z.
+        private static readonly Vector3 RoomSize = new Vector3(22f, 7f, 34f);
         private const float WallThickness = 0.5f;
-        private const float PadTop = 1.4f;
-        private static readonly Vector3 PadCenter = new Vector3(0f, PadTop * 0.5f, -8.6f);
+        private const float PadTop = 1.9f;
+        private static readonly Vector3 PadCenter = new Vector3(0f, PadTop * 0.5f, -15.6f);
         private static readonly Vector3 PadSize = new Vector3(1.2f, PadTop, 0.6f);
-        private static readonly Vector3 LaunchPosition = new Vector3(0f, PadTop + 0.08f, -8.45f);
+        private static readonly Vector3 LaunchPosition = new Vector3(0f, PadTop + 0.08f, -15.45f);
 
         private static readonly Color Background = new Color(0.96f, 0.88f, 0.78f);
 
@@ -326,23 +327,35 @@ namespace Game.Editor
             var props = new GameObject("Props").transform;
             props.SetParent(parent, false);
 
-            // Sofa (seat + back) on the left, coffee table in the middle.
-            Box(props, "Sofa_Seat", new Vector3(-4.6f, 0.25f, 1.5f), new Vector3(1f, 0.5f, 2.4f), a);
-            Box(props, "Sofa_Back", new Vector3(-5.25f, 0.6f, 1.5f), new Vector3(0.3f, 1.2f, 2.4f), a);
-            Box(props, "CoffeeTable", new Vector3(-2.6f, 0.22f, 1.5f), new Vector3(0.8f, 0.44f, 1.3f), b);
-            // Bookshelf on the right wall, dining table and chairs toward the far end.
-            Box(props, "Bookshelf", new Vector3(6.65f, 1.1f, -2f), new Vector3(0.7f, 2.2f, 1.8f), b);
-            Box(props, "DiningTable", new Vector3(2.5f, 0.38f, 5.5f), new Vector3(1.8f, 0.76f, 1f), b);
-            Box(props, "Chair_1", new Vector3(2f, 0.45f, 6.4f), new Vector3(0.45f, 0.9f, 0.45f), a);
-            Box(props, "Chair_2", new Vector3(3f, 0.45f, 4.6f), new Vector3(0.45f, 0.9f, 0.45f), a);
-            // Floor lamp (pole + shade), plant (pot + foliage), box stack.
-            Primitive(props, PrimitiveType.Cylinder, "Lamp_Pole", new Vector3(-6f, 0.8f, -5f), new Vector3(0.06f, 0.8f, 0.06f), c);
-            Primitive(props, PrimitiveType.Cylinder, "Lamp_Shade", new Vector3(-6f, 1.7f, -5f), new Vector3(0.45f, 0.15f, 0.45f), b);
-            Primitive(props, PrimitiveType.Cylinder, "Plant_Pot", new Vector3(5.8f, 0.25f, 7.5f), new Vector3(0.5f, 0.25f, 0.5f), b);
-            Primitive(props, PrimitiveType.Sphere, "Plant_Leaves", new Vector3(5.8f, 0.95f, 7.5f), new Vector3(1f, 1.1f, 1f), c);
-            Box(props, "Box_1", new Vector3(-5.5f, 0.3f, 8.5f), new Vector3(0.6f, 0.6f, 0.6f), b);
-            Box(props, "Box_2", new Vector3(-4.85f, 0.25f, 8.6f), new Vector3(0.5f, 0.5f, 0.5f), a);
-            Box(props, "Box_3", new Vector3(-5.3f, 0.8f, 8.5f), new Vector3(0.45f, 0.4f, 0.45f), c);
+            // Living area (left, middle): sofa, armchair, coffee table, rug-height TV bench.
+            Box(props, "Sofa_Seat", new Vector3(-8.5f, 0.25f, -1f), new Vector3(1f, 0.5f, 2.6f), a);
+            Box(props, "Sofa_Back", new Vector3(-9.15f, 0.6f, -1f), new Vector3(0.3f, 1.2f, 2.6f), a);
+            Box(props, "Armchair", new Vector3(-6f, 0.45f, -4f), new Vector3(1f, 0.9f, 1f), a);
+            Box(props, "CoffeeTable", new Vector3(-6.4f, 0.22f, -1f), new Vector3(0.8f, 0.44f, 1.3f), b);
+            Box(props, "TVBench", new Vector3(-3.2f, 0.3f, -1f), new Vector3(0.5f, 0.6f, 2.2f), b);
+            Box(props, "TV", new Vector3(-3.2f, 1.05f, -1f), new Vector3(0.08f, 0.9f, 1.6f), a);
+            // Right wall: two bookshelves.
+            Box(props, "Bookshelf_1", new Vector3(10.6f, 1.1f, -6f), new Vector3(0.7f, 2.2f, 1.8f), b);
+            Box(props, "Bookshelf_2", new Vector3(10.6f, 1.1f, -3.8f), new Vector3(0.7f, 2.2f, 1.8f), b);
+            // Dining area (right, far half): table + chairs.
+            Box(props, "DiningTable", new Vector3(5f, 0.38f, 7f), new Vector3(1.8f, 0.76f, 1f), b);
+            Box(props, "Chair_1", new Vector3(4.5f, 0.45f, 7.9f), new Vector3(0.45f, 0.9f, 0.45f), a);
+            Box(props, "Chair_2", new Vector3(5.5f, 0.45f, 6.1f), new Vector3(0.45f, 0.9f, 0.45f), a);
+            // Work corner near the launch end: desk.
+            Box(props, "Desk", new Vector3(7.5f, 0.38f, -13.5f), new Vector3(1.6f, 0.76f, 0.8f), b);
+            // Floor lamps, plants, a box stack, a tall cabinet in the far corner.
+            Primitive(props, PrimitiveType.Cylinder, "Lamp_Pole", new Vector3(-9.5f, 0.8f, -9f), new Vector3(0.06f, 0.8f, 0.06f), c);
+            Primitive(props, PrimitiveType.Cylinder, "Lamp_Shade", new Vector3(-9.5f, 1.7f, -9f), new Vector3(0.45f, 0.15f, 0.45f), b);
+            Primitive(props, PrimitiveType.Cylinder, "Lamp2_Pole", new Vector3(1.5f, 0.8f, 2f), new Vector3(0.06f, 0.8f, 0.06f), c);
+            Primitive(props, PrimitiveType.Cylinder, "Lamp2_Shade", new Vector3(1.5f, 1.7f, 2f), new Vector3(0.45f, 0.15f, 0.45f), b);
+            Primitive(props, PrimitiveType.Cylinder, "Plant_Pot", new Vector3(9.8f, 0.25f, 14.5f), new Vector3(0.5f, 0.25f, 0.5f), b);
+            Primitive(props, PrimitiveType.Sphere, "Plant_Leaves", new Vector3(9.8f, 0.95f, 14.5f), new Vector3(1f, 1.1f, 1f), c);
+            Primitive(props, PrimitiveType.Cylinder, "Plant2_Pot", new Vector3(-2f, 0.3f, 9f), new Vector3(0.6f, 0.3f, 0.6f), b);
+            Primitive(props, PrimitiveType.Sphere, "Plant2_Leaves", new Vector3(-2f, 1.2f, 9f), new Vector3(1.2f, 1.6f, 1.2f), c);
+            Box(props, "Box_1", new Vector3(-9.5f, 0.3f, 15f), new Vector3(0.6f, 0.6f, 0.6f), b);
+            Box(props, "Box_2", new Vector3(-8.85f, 0.25f, 15.1f), new Vector3(0.5f, 0.5f, 0.5f), a);
+            Box(props, "Box_3", new Vector3(-9.3f, 0.8f, 15f), new Vector3(0.45f, 0.4f, 0.45f), c);
+            Box(props, "Cabinet", new Vector3(10.4f, 1.25f, 10f), new Vector3(1.1f, 2.5f, 0.6f), a);
         }
 
         private static GameObject Box(Transform parent, string name, Vector3 center, Vector3 size, Material mat) =>

@@ -6,13 +6,14 @@ namespace Game.Tests
 {
     /// <summary>
     /// Integrates FlightModel with default FlightConfig values (explicit Euler at 50 Hz, like FixedUpdate)
-    /// and checks the SPEC feel targets: ~8-12:1 glide, fast throws don't balloon into the ceiling,
-    /// stalls recover, banking turns the right way. Prints numbers so tuning changes are easy to compare.
+    /// and checks the feel targets: ~10:1 physical glide, ~30:1 with the arcade assist (long runs that end on a
+    /// crash), fast throws don't balloon into the ceiling, stalls recover, banking turns the right way. Prints numbers so tuning changes are easy to compare.
     /// </summary>
     public class FlightModelTests
     {
         private const float Dt = 0.02f;
-        private const float Ceiling = 5f;
+        private const float Ceiling = 7f;
+        private const float PadHeight = 1.98f;
         private FlightConfig _cfg;
 
         [SetUp]
@@ -53,27 +54,37 @@ namespace Game.Tests
         }
 
         [Test]
-        public void StillAirGlideRatio_IsAboutTenToOne()
+        public void PhysicalGlide_WithoutAssist_IsAboutTenToOne()
         {
-            // Start from a high, settled glide so the launch transient doesn't dominate.
+            JsonUtility.FromJsonOverwrite("{\"_glideAssist\":0,\"_verticalDamping\":0}", _cfg);
             var r = Fly(5f, -5.7f, 40f, default, 120f, float.MaxValue);
             var ratio = r.Distance / 40f;
-            Debug.Log($"[Flight] glide ratio {ratio:0.0}:1, speed {r.EndSpeed:0.00} m/s, {r.Time:0.0}s");
+            Debug.Log($"[Flight] physical glide ratio {ratio:0.0}:1, speed {r.EndSpeed:0.00} m/s");
             Assert.That(ratio, Is.InRange(8f, 12f));
             Assert.IsFalse(r.EverStalled, "steady glide must not stall");
         }
 
+        [Test]
+        public void ArcadeGlide_WithDefaults_IsLongAndSlowSinking()
+        {
+            var r = Fly(5f, -2f, 40f, default, 300f, float.MaxValue);
+            var ratio = r.Distance / 40f;
+            Debug.Log($"[Flight] arcade glide ratio {ratio:0.0}:1, sink {40f / r.Time:0.00} m/s, speed {r.EndSpeed:0.00} m/s");
+            Assert.GreaterOrEqual(ratio, 20f);
+            Assert.IsFalse(r.EverStalled);
+        }
+
         [TestCase(5f, 0f)]
-        [TestCase(6.5f, 10f)]
         [TestCase(5f, 12f)]
+        [TestCase(6.5f, 10f)]
         [TestCase(8.5f, 5f)]
         [TestCase(8.5f, -5f)]
-        public void LaunchFromPad_NoInput_FliesWithoutHittingCeiling(float speed, float pitch)
+        public void LaunchFromPad_NoInput_FliesLongWithoutHittingCeiling(float speed, float pitch)
         {
-            var r = Fly(speed, pitch, 1.48f, default);
-            Debug.Log($"[Flight] launch {speed} m/s @ {pitch}°: {r.Time:0.00}s, {r.Distance:0.0} m, peak {r.MaxHeight:0.00} m");
+            var r = Fly(speed, pitch, PadHeight, default);
+            Debug.Log($"[Flight] launch {speed} m/s @ {pitch}°: {r.Time:0.0}s, {r.Distance:0.0} m, peak {r.MaxHeight:0.00} m");
             Assert.IsFalse(r.HitCeiling, $"balloons into the ceiling (peak {r.MaxHeight:0.00} m)");
-            Assert.Greater(r.Time, 1f, "no dead runs: every launch glides for a while");
+            Assert.Greater(r.Time, 8f, "in open air an untouched throw should glide a long time; walls/props end runs");
         }
 
         [Test]

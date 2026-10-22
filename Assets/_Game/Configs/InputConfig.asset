@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: InputConfig
   m_EditorClassIdentifier: 
   _mode: 1
-  _maxTiltAngle: 25
+  _maxTiltAngle: 20
   _tiltSensitivity: 1
-  _tiltDeadZone: 0.08
+  _tiltDeadZone: 0.05
   _tiltSmoothing: 12
   _calibrateOnStart: 1
   _invertX: 0
