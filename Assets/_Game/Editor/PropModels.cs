@@ -1,0 +1,169 @@
+using Template.Editor;
+using UnityEditor;
+using UnityEngine;
+
+namespace Game.Editor
+{
+    /// <summary>
+    /// Swaps greybox prop visuals for Meshy models (Docs/MESHY_ASSETS.md) when the model file exists.
+    /// The greybox primitives keep their colliders (only their renderers are turned off), so gameplay never
+    /// depends on Meshy topology. Each model is rotated by its Yaw, uniformly scaled to fit inside the combined
+    /// bounds of the parts it replaces, and placed bottom-centre; the parts are then clamped to the model's bounds
+    /// so crashes match what the player sees. Missing models leave the greybox as is.
+    /// </summary>
+    internal static class PropModels
+    {
+        public const string Folder = "Assets/_Game/Art/Models";
+        public const string TexturesFolder = Folder + "/Textures";
+        private const string MaterialsFolder = Folder + "/Materials";
+
+        private struct Entry
+        {
+            public string File;      // Models/<File>.fbx, Textures/<File>_base_color.png
+            public string[] Parts;   // greybox objects it replaces (by name, under Props)
+            public float Yaw;        // degrees around Y applied to the model's native orientation
+            public Entry(string file, float yaw, params string[] parts)
+            {
+                File = file;
+                Yaw = yaw;
+                Parts = parts;
+            }
+        }
+
+        // Yaw: Meshy models come in facing -Z with their long side along X. Yaw turns the front to face the room:
+        // front +X → -90, front -X → 90, front +Z → 180, front -Z → 0. Check new models with a render.
+        // FloorFan_Body / FloorFan_Blades / Radiator are imported but placed with the wind volumes (Day 2).
+        private static readonly Entry[] Entries =
+        {
+            new Entry("LaunchShelf", 180f, "LaunchPad"),
+            new Entry("Sofa", -90f, "Sofa_Seat", "Sofa_Back"),
+            new Entry("Armchair", 180f, "Armchair"),
+            new Entry("CoffeeTable", 90f, "CoffeeTable"),
+            new Entry("TVBench", 90f, "TVBench"),
+            new Entry("TV", 90f, "TV"),
+            new Entry("Bookshelf", 90f, "Bookshelf_1"),
+            new Entry("Bookshelf", 90f, "Bookshelf_2"),
+            new Entry("DiningTable", 0f, "DiningTable"),
+            new Entry("DiningChair", 0f, "Chair_1"),
+            new Entry("DiningChair", 180f, "Chair_2"),
+            new Entry("Desk", 0f, "Desk"),
+            new Entry("FloorLamp", 0f, "Lamp_Pole", "Lamp_Shade"),
+            new Entry("FloorLamp", 0f, "Lamp2_Pole", "Lamp2_Shade"),
+            new Entry("PlantSmall", 0f, "Plant_Pot", "Plant_Leaves"),
+            new Entry("PlantLarge", 0f, "Plant2_Pot", "Plant2_Leaves"),
+            new Entry("BoxStack", 0f, "Box_1", "Box_2", "Box_3"),
+            new Entry("Cabinet", 90f, "Cabinet"),
+        };
+
+        /// <summary>Applies every available model under root (greybox parts are found by name at any depth).</summary>
+        public static void Apply(Transform root)
+        {
+            foreach (var entry in Entries)
+            {
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{Folder}/{entry.File}.fbx");
+                if (model == null) continue;
+                if (!TryGetPartsBounds(root, entry.Parts, out var target))
+                {
+                    Log.Warn($"{entry.File}: greybox parts not found ({string.Join(", ", entry.Parts)}).");
+                    continue;
+                }
+                var first = FindDeep(root, entry.Parts[0]);
+                foreach (var part in entry.Parts) FindDeep(root, part).GetComponent<MeshRenderer>().enabled = false;
+
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, first.parent);
+                instance.name = entry.Parts[0] + "_Model";
+                Fit(instance.transform, target, entry.Yaw);
+                ClampColliders(root, entry.Parts, RendererBounds(instance.transform));
+                var material = MaterialFor(entry.File);
+                foreach (var r in instance.GetComponentsInChildren<MeshRenderer>())
+                {
+                    r.sharedMaterial = material;
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+        }
+
+        private static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            for (var i = 0; i < root.childCount; i++)
+            {
+                var found = FindDeep(root.GetChild(i), name);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private static bool TryGetPartsBounds(Transform root, string[] parts, out Bounds bounds)
+        {
+            bounds = default;
+            var found = false;
+            foreach (var name in parts)
+            {
+                var t = FindDeep(root, name);
+                if (t == null || !t.TryGetComponent<MeshRenderer>(out var r)) return false;
+                if (!found) bounds = r.bounds;
+                else bounds.Encapsulate(r.bounds);
+                found = true;
+            }
+            return found;
+        }
+
+        /// <summary>Uniform scale to fit inside target (after yaw), bottom-centre aligned.</summary>
+        private static void Fit(Transform model, Bounds target, float yaw)
+        {
+            model.localScale = Vector3.one;
+            model.rotation = Quaternion.Euler(0f, yaw, 0f);
+            model.position = Vector3.zero;
+            var b = RendererBounds(model);
+            var s = Mathf.Min(target.size.x / b.size.x, target.size.y / b.size.y, target.size.z / b.size.z);
+            model.localScale = Vector3.one * s;
+            b = RendererBounds(model);
+            var bottomCentre = new Vector3(b.center.x, b.min.y, b.center.z);
+            var targetBottom = new Vector3(target.center.x, target.min.y, target.center.z);
+            model.position += targetBottom - bottomCentre;
+        }
+
+        /// <summary>
+        /// Shrinks the greybox box parts to the model's bounds so no invisible collider sticks out of the model
+        /// (e.g. a greybox sofa back taller than the real one). Parts are axis-aligned cubes.
+        /// </summary>
+        private static void ClampColliders(Transform root, string[] parts, Bounds model)
+        {
+            foreach (var name in parts)
+            {
+                var t = FindDeep(root, name);
+                if (!t.TryGetComponent<BoxCollider>(out _)) continue;
+                var min = Vector3.Max(t.position - t.localScale * 0.5f, model.min);
+                var max = Vector3.Min(t.position + t.localScale * 0.5f, model.max);
+                var size = Vector3.Max(max - min, Vector3.one * 0.01f);
+                t.position = (min + max) * 0.5f;
+                t.localScale = size;
+            }
+        }
+
+        private static Bounds RendererBounds(Transform root)
+        {
+            var renderers = root.GetComponentsInChildren<Renderer>();
+            var b = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+            return b;
+        }
+
+        private static Material MaterialFor(string file)
+        {
+            var path = $"{MaterialsFolder}/{file}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = EditorUtil.LoadOrCreateMaterial(path, Color.white);
+                var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TexturesFolder}/{file}_base_color.png");
+                if (tex != null) mat.SetTexture("_BaseMap", tex);
+                else Log.Warn($"{file}: no {TexturesFolder}/{file}_base_color.png, using plain white.");
+                EditorUtility.SetDirty(mat);
+                AssetDatabase.SaveAssets();
+            }
+            return mat;
+        }
+    }
+}

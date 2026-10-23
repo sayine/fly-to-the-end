@@ -249,6 +249,7 @@ namespace Game.Editor
             BuildRoom(room);
             var pad = Box(room, "LaunchPad", PadCenter, PadSize, Mat("LaunchPad"));
             BuildProps(room);
+            PropModels.Apply(room); // Meshy models over greybox colliders, where available
             foreach (var t in room.GetComponentsInChildren<Transform>())
                 GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
 
@@ -333,7 +334,7 @@ namespace Game.Editor
             Box(props, "Armchair", new Vector3(-6f, 0.45f, -4f), new Vector3(1f, 0.9f, 1f), a);
             Box(props, "CoffeeTable", new Vector3(-6.4f, 0.22f, -1f), new Vector3(0.8f, 0.44f, 1.3f), b);
             Box(props, "TVBench", new Vector3(-3.2f, 0.3f, -1f), new Vector3(0.5f, 0.6f, 2.2f), b);
-            Box(props, "TV", new Vector3(-3.2f, 1.05f, -1f), new Vector3(0.08f, 0.9f, 1.6f), a);
+            Box(props, "TV", new Vector3(-3.2f, 1.05f, -1f), new Vector3(0.3f, 0.9f, 1.6f), a);
             // Right wall: two bookshelves.
             Box(props, "Bookshelf_1", new Vector3(10.6f, 1.1f, -6f), new Vector3(0.7f, 2.2f, 1.8f), b);
             Box(props, "Bookshelf_2", new Vector3(10.6f, 1.1f, -3.8f), new Vector3(0.7f, 2.2f, 1.8f), b);
@@ -355,7 +356,7 @@ namespace Game.Editor
             Box(props, "Box_1", new Vector3(-9.5f, 0.3f, 15f), new Vector3(0.6f, 0.6f, 0.6f), b);
             Box(props, "Box_2", new Vector3(-8.85f, 0.25f, 15.1f), new Vector3(0.5f, 0.5f, 0.5f), a);
             Box(props, "Box_3", new Vector3(-9.3f, 0.8f, 15f), new Vector3(0.45f, 0.4f, 0.45f), c);
-            Box(props, "Cabinet", new Vector3(10.4f, 1.25f, 10f), new Vector3(1.1f, 2.5f, 0.6f), a);
+            Box(props, "Cabinet", new Vector3(10.6f, 1.25f, 10f), new Vector3(0.6f, 2.5f, 1.1f), a);
         }
 
         private static GameObject Box(Transform parent, string name, Vector3 center, Vector3 size, Material mat) =>
