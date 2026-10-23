@@ -52,6 +52,7 @@ namespace Game.Editor
         public static void Build(bool force)
         {
             EditorUtil.LoadOrCreate<FlightConfig>(FlightConfigPath);
+            WindLayout.LoadOrCreateConfig();
             AssetDatabase.SaveAssets();
             PatchScoreDisplay();
             CreateMaterials();
@@ -242,7 +243,7 @@ namespace Game.Editor
             light.type = LightType.Directional;
             light.color = new Color(1f, 0.95f, 0.86f);
             light.intensity = 0.9f;
-            light.shadows = LightShadows.None; // SPEC: no realtime shadows (blob shadow comes on Day 2)
+            light.shadows = LightShadows.None; // SPEC: no realtime shadows (the plane gets a blob shadow)
             lightGo.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
 
             var room = new GameObject("Room").transform;
@@ -252,6 +253,10 @@ namespace Game.Editor
             PropModels.Apply(room); // Meshy models over greybox colliders, where available
             foreach (var t in room.GetComponentsInChildren<Transform>())
                 GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
+
+            var wind = WindLayout.Build(Mat("Prop_C")); // not static: the fan rotor spins
+            PropModels.Apply(wind);
+            WindLayout.FinishRotor(wind);
 
             var launchPoint = new GameObject("LaunchPoint").transform;
             launchPoint.SetPositionAndRotation(LaunchPosition, Quaternion.identity);
@@ -294,10 +299,11 @@ namespace Game.Editor
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);
             var targets = panelSo.FindProperty("_targets");
-            targets.arraySize = 3;
+            targets.arraySize = 4;
             targets.GetArrayElementAtIndex(0).objectReferenceValue = AssetDatabase.LoadAssetAtPath<FlightConfig>(FlightConfigPath);
             targets.GetArrayElementAtIndex(1).objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath);
             targets.GetArrayElementAtIndex(2).objectReferenceValue = AssetDatabase.LoadAssetAtPath<InputConfig>(InputConfigPath);
+            targets.GetArrayElementAtIndex(3).objectReferenceValue = AssetDatabase.LoadAssetAtPath<Game.Wind.WindConfig>(WindLayout.ConfigPath);
             panelSo.FindProperty("_telemetrySource").objectReferenceValue = game;
             panelSo.ApplyModifiedPropertiesWithoutUndo();
 

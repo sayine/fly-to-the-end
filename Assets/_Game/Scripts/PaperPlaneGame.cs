@@ -244,7 +244,11 @@ namespace Game
             {
                 sb.Append("speed ").Append(s.Speed.ToString("0.00")).Append("  AoA ").Append(s.EffectiveAoa.ToString("0.0"))
                   .Append("  bank ").Append(s.EffectiveBank.ToString("0"))
-                  .Append(s.Stalled ? "  STALL" : "").Append('\n');
+                  .Append(s.Stalled ? "  STALL" : "");
+                var w = _plane.Wind;
+                if (w.sqrMagnitude > 0.01f)
+                    sb.Append("  wind ").Append(w.x.ToString("0.0")).Append(',').Append(w.y.ToString("0.0")).Append(',').Append(w.z.ToString("0.0"));
+                sb.Append('\n');
             }
             if (_input != null)
             {

@@ -14,7 +14,7 @@ namespace Game.Tests
 {
     /// <summary>
     /// Boot → Play → launch the real Rigidbody plane in the generated room with no steering:
-    /// it must glide (score > 1 s), crash into the room, and the flow must reach GameOver.
+    /// it must glide, get pushed sideways by the floor fan, crash into the room, and the flow must reach GameOver.
     /// </summary>
     public class PaperPlaneFlightSmokeTest
     {
@@ -44,11 +44,17 @@ namespace Game.Tests
             Assert.IsFalse(game.TryLaunch(velocity), "second launch must be refused while flying");
             var launchTime = Time.time;
 
-            yield return WaitFor(() => plane.CurrentPhase == PaperPlane.Phase.Crashed, 20f, "crash");
+            var maxWind = 0f;
+            yield return WaitFor(() =>
+            {
+                maxWind = Mathf.Max(maxWind, plane.Wind.magnitude);
+                return plane.CurrentPhase == PaperPlane.Phase.Crashed;
+            }, 20f, "crash");
             var flight = Time.time - launchTime;
-            Debug.Log($"[Test] untouched flight {flight:0.00}s, crash at {plane.transform.position}, score {_score}");
+            Debug.Log($"[Test] untouched flight {flight:0.00}s, crash at {plane.transform.position}, score {_score}, peak wind {maxWind:0.00} m/s²");
             Assert.Greater(flight, 4f, "an untouched straight throw should glide well across the room");
             Assert.Greater(plane.transform.position.y, -0.5f, "fell through the floor");
+            Assert.Greater(plane.transform.position.x, 0.3f, "the floor fan (left of the path, blowing +X) should push the throw right");
 
             yield return WaitFor(() => flow.State == GameState.GameOver, 5f, "GameOver after crash settle");
             Assert.Greater(_score, 10, "score is airborne time in tenths");

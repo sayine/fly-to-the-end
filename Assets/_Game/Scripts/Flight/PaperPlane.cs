@@ -1,4 +1,5 @@
 using System;
+using Game.Wind;
 using UnityEngine;
 
 namespace Game.Flight
@@ -35,6 +36,8 @@ namespace Game.Flight
         public FlightConfig Config => _config;
         public Rigidbody Body => _body;
         public Vector3 Velocity => _body.linearVelocity;
+        /// <summary>Wind acceleration applied this physics step (for telemetry and feedback).</summary>
+        public Vector3 Wind { get; private set; }
 
         private void Awake()
         {
@@ -50,6 +53,7 @@ namespace Game.Flight
             EndGrace();
             CurrentPhase = Phase.Ready;
             Controls = default;
+            Wind = Vector3.zero;
             if (!_body.isKinematic)
             {
                 _body.linearVelocity = Vector3.zero;
@@ -104,8 +108,9 @@ namespace Game.Flight
 
             _state.Velocity = _body.linearVelocity;
             var acceleration = FlightModel.Step(ref _state, Controls, _config, Physics.gravity, Time.fixedDeltaTime);
+            Wind = WindField.Sample(_body.position, Time.time); // zones have no colliders: wind only pushes
             _body.linearVelocity = _state.Velocity; // includes this step's turn
-            _body.AddForce(acceleration, ForceMode.Acceleration);
+            _body.AddForce(acceleration + Wind, ForceMode.Acceleration);
             _body.angularVelocity = Vector3.zero;
             _body.MoveRotation(FlightModel.Orientation(_state));
         }

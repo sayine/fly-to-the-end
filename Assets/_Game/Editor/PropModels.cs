@@ -32,7 +32,6 @@ namespace Game.Editor
 
         // Yaw: Meshy models come in facing -Z with their long side along X. Yaw turns the front to face the room:
         // front +X → -90, front -X → 90, front +Z → 180, front -Z → 0. Check new models with a render.
-        // FloorFan_Body / FloorFan_Blades / Radiator are imported but placed with the wind volumes (Day 2).
         private static readonly Entry[] Entries =
         {
             new Entry("LaunchShelf", 180f, "LaunchPad"),
@@ -53,6 +52,10 @@ namespace Game.Editor
             new Entry("PlantLarge", 0f, "Plant2_Pot", "Plant2_Leaves"),
             new Entry("BoxStack", 0f, "Box_1", "Box_2", "Box_3"),
             new Entry("Cabinet", 90f, "Cabinet"),
+            // Wind sources (WindLayout builds their greybox under the "Wind" root).
+            new Entry("FloorFan_Body", -90f, "Fan_Body"),
+            new Entry("FloorFan_Blades", -90f, "Fan_Rotor"),
+            new Entry("Radiator", -90f, "Radiator"),
         };
 
         /// <summary>Applies every available model under root (greybox parts are found by name at any depth).</summary>
@@ -62,9 +65,10 @@ namespace Game.Editor
             {
                 var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{Folder}/{entry.File}.fbx");
                 if (model == null) continue;
+                if (FindDeep(root, entry.Parts[0]) == null) continue; // entry belongs to another root
                 if (!TryGetPartsBounds(root, entry.Parts, out var target))
                 {
-                    Log.Warn($"{entry.File}: greybox parts not found ({string.Join(", ", entry.Parts)}).");
+                    Log.Warn($"{entry.File}: some greybox parts not found ({string.Join(", ", entry.Parts)}).");
                     continue;
                 }
                 var first = FindDeep(root, entry.Parts[0]);
