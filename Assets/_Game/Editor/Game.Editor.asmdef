@@ -8,7 +8,8 @@
         "Template.Flow",
         "Template.Game",
         "Template.Editor",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"

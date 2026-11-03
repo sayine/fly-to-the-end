@@ -103,8 +103,6 @@ namespace Game.Flight
         [SerializeField, Range(0.05f, 1f)] private float _aimScreenDistance = 0.3f;
         [Tooltip("Depth (m) along the camera ray of the aim point.")]
         [SerializeField, Range(1f, 30f)] private float _aimDepth = 10f;
-        [Tooltip("Touches must start within this distance (screen heights) of the plane to start a flick.")]
-        [SerializeField, Range(0.05f, 1f)] private float _grabRadius = 0.3f;
         [Tooltip("Collisions with the launch pad are ignored for this long after release (s).")]
         [SerializeField, Range(0f, 1f)] private float _launchGraceTime = 0.25f;
 
@@ -150,7 +148,6 @@ namespace Game.Flight
         public float MaxLaunchYaw => _maxLaunchYaw;
         public float AimScreenDistance => _aimScreenDistance;
         public float AimDepth => _aimDepth;
-        public float GrabRadius => _grabRadius;
         public float LaunchGraceTime => _launchGraceTime;
 
         /// <summary>Piecewise-linear default (no overshoot around the stall peak).</summary>

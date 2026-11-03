@@ -25,7 +25,7 @@ namespace Game
         [SerializeField] private Vector3 _cameraOffset = new Vector3(0f, 12f, -7f);
         [SerializeField, Min(0.1f)] private float _cameraFollowSharpness = 6f;
 
-        [Header("Touch pad steering (one finger, bottom of the screen)")]
+        [Header("Touch pad (one finger, bottom of the screen): swipe up to throw, drag to steer")]
         [Tooltip("Pad bottom edge above the safe-area bottom (fraction of safe-area height).")]
         [SerializeField, Range(0f, 0.3f)] private float _padBottom = 0.03f;
         [Tooltip("Pad height (fraction of safe-area height).")]
@@ -48,9 +48,11 @@ namespace Game
         [SerializeField, Range(1f, 40f)] private float _pitchSmoothing = 10f;
         [Tooltip("Off: drag up = nose up (climb). On: drag up = nose down (flight-stick style).")]
         [SerializeField] private bool _invertPitch;
+        [Tooltip("Show the throw hint again after this long on the shelf without touching the pad (s).")]
+        [SerializeField, Range(1f, 30f)] private float _idleHintDelay = 5f;
 
         [Header("Menu backdrop")]
-        [Tooltip("Menu camera orbit around the room centre: half-size of the ellipse (m).")]
+        [Tooltip("Menu camera orbit around the launch room's centre: half-size of the ellipse (m).")]
         [SerializeField, Range(1f, 15f)] private float _menuOrbitRadiusX = 5f;
         [SerializeField, Range(1f, 20f)] private float _menuOrbitRadiusZ = 7.5f;
         [SerializeField, Range(0.5f, 6.5f)] private float _menuOrbitHeight = 3.2f;
@@ -97,6 +99,7 @@ namespace Game
         public float PadHeight => _padHeight;
         public float PadSideMargin => _padSideMargin;
         public float PadTravel => _padTravel;
+        public float IdleHintDelay => _idleHintDelay;
         public float BankSensitivity => _bankSensitivity;
         public float PitchSensitivity => _pitchSensitivity;
         public float BankDeadZone => _bankDeadZone;

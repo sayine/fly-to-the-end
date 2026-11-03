@@ -50,12 +50,16 @@ namespace Game.Editor
             new Entry("FloorLamp", 0f, "Lamp2_Pole", "Lamp2_Shade"),
             new Entry("PlantSmall", 0f, "Plant_Pot", "Plant_Leaves"),
             new Entry("PlantLarge", 0f, "Plant2_Pot", "Plant2_Leaves"),
+            new Entry("PlantSmall", 0f, "Plant3_Pot", "Plant3_Leaves"),
             new Entry("BoxStack", 0f, "Box_1", "Box_2", "Box_3"),
             new Entry("Cabinet", 90f, "Cabinet"),
             // Wind sources (WindLayout builds their greybox under the "Wind" root).
             new Entry("FloorFan_Body", -90f, "Fan_Body"),
             new Entry("FloorFan_Blades", -90f, "Fan_Rotor"),
             new Entry("Radiator", -90f, "Radiator"),
+            new Entry("FloorFan_Body", 180f, "Fan2_Body"),
+            new Entry("FloorFan_Blades", 180f, "Fan2_Rotor"),
+            new Entry("Radiator", -90f, "Radiator2"),
         };
 
         /// <summary>Applies every available model under root (greybox parts are found by name at any depth).</summary>

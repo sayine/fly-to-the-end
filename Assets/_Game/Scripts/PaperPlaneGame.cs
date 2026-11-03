@@ -1,17 +1,20 @@
 using System.Text;
 using Game.Flight;
 using Template.Core;
+using Template.Services.Analytics;
 using Template.Services.Haptics;
 using Template.Services.Input;
+using Template.Services.Save;
 using Template.UI.DevTools;
 using UnityEngine;
 
 namespace Game
 {
     /// <summary>
-    /// Paper Flight core loop: plane on the shelf → flick to launch → one-finger pad to steer → any contact
-    /// crashes → short settle → PlayerDiedEvent. Score = seconds airborne, raised in tenths
-    /// (ScoreChangedEvent is an int; the HUD shows it with scale 0.1).
+    /// Paper Flight core loop: plane on the shelf → swipe up on the pad to throw → drag on the same pad to steer
+    /// → any contact crashes → short settle → PlayerDiedEvent. Score = seconds airborne, raised in tenths
+    /// (ScoreChangedEvent is an int; the HUD shows it with scale 0.1). First-time players get a ghost-finger
+    /// hint for the throw and for steering; it completes (TutorialSeen, tutorial_complete) once they steer.
     /// Talks to the flow only through events, like the template's placeholder game.
     /// </summary>
     public sealed class PaperPlaneGame : MonoBehaviour, IDevTelemetry
@@ -33,7 +36,7 @@ namespace Game
         [SerializeField] private Camera _camera;
         [Tooltip("Faint direction preview while dragging (SPEC: no full trajectory).")]
         [SerializeField] private LineRenderer _aimArrow;
-        [Tooltip("Bottom steering pad visuals (shown while flying).")]
+        [Tooltip("Bottom pad visuals: throw and steer area, always visible in the Game scene.")]
         [SerializeField] private ControlPadView _padView;
 
         private const float ArrowMinLength = 0.5f;
@@ -42,6 +45,8 @@ namespace Game
         private readonly FlickGesture _flick = new FlickGesture();
         private IPlayerInput _input;
         private IHapticService _haptics;
+        private ISaveService _save;
+        private IAnalyticsService _analytics;
         private PadSteering _steering;
         private RunPhase _phase;
         private bool _playing;
@@ -51,12 +56,24 @@ namespace Game
         private float _settleTimer;
         private Vector3 _lastPosition;
         private bool _wasPressed;
+        private bool _tutorial;       // first-time hints active until the player has thrown and steered
+        private float _aimIdle;       // seconds on the shelf without touching the pad
+        private float _steerHintTime; // seconds of this flight with the steer hint up
+        private float _steeredTime;   // seconds the player actually steered during the tutorial
+
+        private const float SteerHintMaxTime = 8f;
+        private const float SteerToComplete = 0.6f;
+        private const float SteerDragThreshold = 0.25f;
 
         private void Awake()
         {
             ServiceLocator.TryGet(out _input);
             ServiceLocator.TryGet(out _haptics);
+            ServiceLocator.TryGet(out _save);
+            ServiceLocator.TryGet(out _analytics);
+            _tutorial = _save == null || !_save.Data.TutorialSeen;
             _steering = new PadSteering(_gameConfig);
+            SetPad(true);
             _plane.Crashed += OnCrashed;
             SetArrow(false);
             ParkPlane();
@@ -102,8 +119,8 @@ namespace Game
                 _flick.Cancel();
                 SetArrow(false);
                 _steering.Reset();
+                SetHint(PadHint.None);
             }
-            if (_padView != null) _padView.SetVisible(_playing && _phase == RunPhase.Flying);
         }
 
         // ---------- Loop ----------
@@ -137,8 +154,12 @@ namespace Game
             var position = _input.PointerPosition;
             var now = Time.unscaledTime;
 
-            if (pressed && !_wasPressed && !DevTuningPanel.IsOpen && IsNearPlane(position)) _flick.Begin(position, now);
+            if (pressed && !_wasPressed && !DevTuningPanel.IsOpen && IsOnPad(position)) _flick.Begin(position, now);
             else if (_flick.Active) _flick.Add(position, now); // includes the release frame's position
+
+            _aimIdle = _flick.Active ? 0f : _aimIdle + Time.deltaTime;
+            SetHint(!_flick.Active && (_tutorial || _aimIdle > _gameConfig.IdleHintDelay) ? PadHint.Launch : PadHint.None);
+            RefreshPad(_flick.Active);
 
             if (_flick.Active)
             {
@@ -156,10 +177,9 @@ namespace Game
                 var pressed = _input.IsPressed;
                 _plane.Controls = _steering.Update(pressed, pressed && !_wasPressed, _input.PointerPosition, !DevTuningPanel.IsOpen, dt);
                 _wasPressed = pressed;
-                if (_padView != null)
-                    _padView.Refresh(PadSteering.PadRect(_gameConfig, Screen.safeArea), _steering.Active, _steering.Anchor,
-                        _steering.Drag, _gameConfig.PadTravel * Screen.height);
+                RefreshPad(_steering.Active);
             }
+            UpdateSteerTutorial(dt);
 
             _airTime += dt;
             var tenths = Mathf.FloorToInt(_airTime * 10f);
@@ -198,7 +218,8 @@ namespace Game
             _lastPosition = _plane.transform.position;
             _phase = RunPhase.Flying;
             _wasPressed = _input != null && _input.IsPressed; // the launching finger can't start a steer
-            SetPad(true);
+            _steerHintTime = 0f;
+            SetHint(_tutorial ? PadHint.Steer : PadHint.None);
             _haptics?.Play(HapticType.Light);
             return true;
         }
@@ -208,7 +229,8 @@ namespace Game
             if (_phase != RunPhase.Flying) return;
             _phase = RunPhase.Settling;
             _settleTimer = 0f;
-            SetPad(false);
+            SetHint(PadHint.None);
+            RefreshPad(false);
             _plane.Controls = default;
             _haptics?.Play(HapticType.Medium);
             Debug.Log($"[Plane] crash into {(hit != null ? hit.name : "out of bounds")} air={_airTime:0.0}s dist={_distance:0.0}m");
@@ -220,17 +242,44 @@ namespace Game
             _flick.Cancel();
             _wasPressed = _input != null && _input.IsPressed; // a held finger from the previous screen can't launch
             SetArrow(false);
-            SetPad(false);
+            _aimIdle = 0f;
             _plane.PlaceAt(_launchPoint.position, _launchPoint.rotation);
             _steering.Reset();
             if (_chaseCamera != null) _chaseCamera.Snap(_launchPoint.forward);
         }
 
-        private bool IsNearPlane(Vector2 screenPosition)
+        private bool IsOnPad(Vector2 screenPosition) => PadSteering.PadRect(_gameConfig, Screen.safeArea).Contains(screenPosition);
+
+        // ---------- First-time hints ----------
+        /// <summary>Steer hint for the first flights; completes the tutorial once the player has really steered.</summary>
+        private void UpdateSteerTutorial(float dt)
         {
-            if (_camera == null) return true;
-            var planeScreen = (Vector2)_camera.WorldToScreenPoint(_plane.transform.position);
-            return (screenPosition - planeScreen).magnitude / Mathf.Max(1, Screen.height) <= _flightConfig.GrabRadius;
+            if (!_tutorial) return;
+            _steerHintTime += dt;
+            if (_steering.Active && _steering.Drag.magnitude > SteerDragThreshold) _steeredTime += dt;
+            if (_steeredTime >= SteerToComplete)
+            {
+                _tutorial = false;
+                SetHint(PadHint.None);
+                if (_save != null)
+                {
+                    _save.Data.TutorialSeen = true;
+                    _save.Save();
+                }
+                _analytics?.TutorialComplete();
+                return;
+            }
+            SetHint(_steerHintTime < SteerHintMaxTime ? PadHint.Steer : PadHint.None);
+        }
+
+        private void SetHint(PadHint hint)
+        {
+            if (_padView != null) _padView.SetHint(hint);
+        }
+
+        private void RefreshPad(bool active)
+        {
+            if (_padView != null) _padView.Refresh(PadSteering.PadRect(_gameConfig, Screen.safeArea), active);
         }
 
         // ---------- Aim arrow ----------

@@ -6,6 +6,7 @@ using Template.UI.DevTools;
 using Template.UI.Screens;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -27,15 +28,6 @@ namespace Game.Editor
         private const string GameConfigPath = ConfigsFolder + "/GameConfig.asset";
         private const string InputConfigPath = ConfigsFolder + "/InputConfig.asset";
         private const string ScreensFolder = "Assets/_Game/Prefabs/UI/Screens";
-
-        // Room interior. SPEC suggested ≈ 20 × 14 × 5 m; play-testing found that too small, so it's a big loft.
-        // The plane launches from a tall shelf at the -Z end toward +Z.
-        private static readonly Vector3 RoomSize = new Vector3(22f, 7f, 34f);
-        private const float WallThickness = 0.5f;
-        private const float PadTop = 1.9f;
-        private static readonly Vector3 PadCenter = new Vector3(0f, PadTop * 0.5f, -15.6f);
-        private static readonly Vector3 PadSize = new Vector3(1.2f, PadTop, 0.6f);
-        private static readonly Vector3 LaunchPosition = new Vector3(0f, PadTop + 0.08f, -15.45f);
 
         private static readonly Color Background = new Color(0.96f, 0.88f, 0.78f);
 
@@ -235,11 +227,11 @@ namespace Game.Editor
             var pad = BuildEnvironment();
 
             var launchPoint = new GameObject("LaunchPoint").transform;
-            launchPoint.SetPositionAndRotation(LaunchPosition, Quaternion.identity);
+            launchPoint.SetPositionAndRotation(RoomLayout.LaunchPosition, Quaternion.identity);
 
             var planePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlanePrefabPath);
             var planeGo = (GameObject)PrefabUtility.InstantiatePrefab(planePrefab);
-            planeGo.transform.SetPositionAndRotation(LaunchPosition, Quaternion.identity);
+            planeGo.transform.SetPositionAndRotation(RoomLayout.LaunchPosition, Quaternion.identity);
             var plane = planeGo.GetComponent<PaperPlane>();
 
             var arrowGo = new GameObject("AimArrow", typeof(LineRenderer));
@@ -259,7 +251,9 @@ namespace Game.Editor
             EditorUtil.Set(chase, "_plane", plane);
             EditorUtil.Set(chase, "_camera", cam);
             var chaseSo = new SerializedObject(chase);
-            chaseSo.FindProperty("_room").boundsValue = new Bounds(new Vector3(0f, RoomSize.y * 0.5f, 0f), RoomSize);
+            var areas = chaseSo.FindProperty("_areas");
+            areas.arraySize = RoomLayout.Areas.Length;
+            for (var i = 0; i < RoomLayout.Areas.Length; i++) areas.GetArrayElementAtIndex(i).boundsValue = RoomLayout.Areas[i];
             chaseSo.ApplyModifiedPropertiesWithoutUndo();
 
             var game = new GameObject("PaperPlaneGame").AddComponent<PaperPlaneGame>();
@@ -309,6 +303,16 @@ namespace Game.Editor
             EditorUtil.Set(backdrop, "_config", config);
             EditorUtil.Set(backdrop, "_flyer", flyer.transform);
 
+            // Both circle the living room (the launch room).
+            var centre = RoomLayout.LivingRoom.center;
+            var backdropSo = new SerializedObject(backdrop);
+            backdropSo.FindProperty("_lookCentre").vector3Value = new Vector3(centre.x, 1.6f, centre.z);
+            backdropSo.ApplyModifiedPropertiesWithoutUndo();
+            var flyerSo = new SerializedObject(flyer.GetComponent<MenuFlyer>());
+            flyerSo.FindProperty("_centre").vector3Value = new Vector3(centre.x, 3.2f, centre.z);
+            flyerSo.FindProperty("_size").vector2Value = new Vector2(6f, 7f);
+            flyerSo.ApplyModifiedPropertiesWithoutUndo();
+
             EditorSceneManager.SaveScene(scene, SceneGenerator.MenuPath);
             Log.Info($"Saved {SceneGenerator.MenuPath} (Paper Plane menu backdrop)");
         }
@@ -338,24 +342,24 @@ namespace Game.Editor
             lightGo.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
         }
 
-        /// <summary>Room, furniture (Meshy models over greybox colliders) and wind. Returns the launch pad.</summary>
+        /// <summary>Rooms + hallway, furniture (Meshy models over greybox colliders) and wind. Returns the launch pad.</summary>
         private static GameObject BuildEnvironment()
         {
             var room = new GameObject("Room").transform;
-            BuildRoom(room);
-            var pad = Box(room, "LaunchPad", PadCenter, PadSize, Mat("LaunchPad"));
-            BuildProps(room);
+            RoomLayout.BuildArchitecture(room, Mat("Room_Floor"), Mat("Room_Wall"), Mat("Room_Ceiling"));
+            var pad = RoomLayout.BuildLaunchPad(room, Mat("LaunchPad"));
+            RoomLayout.BuildFurniture(room, Mat("Prop_A"), Mat("Prop_B"), Mat("Prop_C"));
             PropModels.Apply(room);
             foreach (var t in room.GetComponentsInChildren<Transform>())
                 GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
 
             var wind = WindLayout.Build(Mat("Prop_C")); // not static: the fan rotor spins
             PropModels.Apply(wind);
-            WindLayout.FinishRotor(wind);
+            WindLayout.FinishRotors(wind);
             return pad;
         }
 
-        /// <summary>Screen-space steering pad: rounded strip + anchor ring + knob (no raycasts: never blocks HUD buttons).</summary>
+        /// <summary>Screen-space throw/steer pad: rounded strip + first-time hint (no raycasts: never blocks HUD buttons).</summary>
         private static ControlPadView BuildControlPad()
         {
             var root = new GameObject("ControlPad", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
@@ -375,21 +379,36 @@ namespace Game.Editor
             var group = pad.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             group.interactable = false;
-            var hint = UiImage(pad.transform, "CenterLine", null, new Color(1f, 1f, 1f, 0.12f), new Vector2(4f, 0f));
-            var hintRt = hint.rectTransform;
-            hintRt.anchorMin = new Vector2(0.5f, 0.15f);
-            hintRt.anchorMax = new Vector2(0.5f, 0.85f);
-            hintRt.sizeDelta = new Vector2(4f, 0f);
-            var ring = UiImage(pad.transform, "Ring", circle, new Color(1f, 1f, 1f, 0.35f), new Vector2(190f, 190f));
-            var knob = UiImage(pad.transform, "Knob", circle, new Color(1f, 1f, 1f, 0.85f), new Vector2(96f, 96f));
+            // Ghost finger + short label for first-time players (animated by ControlPadView).
+            var finger = UiImage(pad.transform, "HintFinger", circle, new Color(1f, 1f, 1f, 0.95f), new Vector2(110f, 110f));
+            var fingerGroup = finger.gameObject.AddComponent<CanvasGroup>();
+            fingerGroup.blocksRaycasts = false;
+            var halo = UiImage(finger.transform, "Halo", circle, new Color(1f, 1f, 1f, 0.3f), new Vector2(170f, 170f));
+            halo.transform.SetAsFirstSibling();
+            var labelGo = new GameObject("HintLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelGo.transform.SetParent(pad.transform, false);
+            var label = labelGo.GetComponent<TextMeshProUGUI>();
+            label.font = TMP_Settings.defaultFontAsset;
+            label.fontSize = 54f;
+            label.fontStyle = FontStyles.Bold;
+            label.alignment = TextAlignmentOptions.Center;
+            label.color = new Color(1f, 1f, 1f, 0.95f);
+            label.raycastTarget = false;
+            label.text = "Swipe up to throw";
+            var labelRt = label.rectTransform;
+            labelRt.anchorMin = new Vector2(0f, 1f);
+            labelRt.anchorMax = new Vector2(1f, 1f);
+            labelRt.pivot = new Vector2(0.5f, 0f);
+            labelRt.anchoredPosition = new Vector2(0f, 24f); // just above the pad
+            labelRt.sizeDelta = new Vector2(0f, 80f);
 
             var view = root.AddComponent<ControlPadView>();
             EditorUtil.Set(view, "_canvas", canvas);
             EditorUtil.Set(view, "_pad", pad.rectTransform);
-            EditorUtil.Set(view, "_ring", ring.rectTransform);
-            EditorUtil.Set(view, "_knob", knob.rectTransform);
             EditorUtil.Set(view, "_group", group);
-            canvas.enabled = false; // shown while flying
+            EditorUtil.Set(view, "_finger", finger.rectTransform);
+            EditorUtil.Set(view, "_fingerGroup", fingerGroup);
+            EditorUtil.Set(view, "_label", label);
             return view;
         }
 
@@ -405,76 +424,6 @@ namespace Game.Editor
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = size;
             return image;
-        }
-
-        private static void BuildRoom(Transform parent)
-        {
-            var half = RoomSize * 0.5f;
-            var t = WallThickness;
-            var floor = Mat("Room_Floor");
-            var wall = Mat("Room_Wall");
-            Box(parent, "Floor", new Vector3(0f, -t * 0.5f, 0f), new Vector3(RoomSize.x + 2 * t, t, RoomSize.z + 2 * t), floor);
-            Box(parent, "Ceiling", new Vector3(0f, RoomSize.y + t * 0.5f, 0f), new Vector3(RoomSize.x + 2 * t, t, RoomSize.z + 2 * t), Mat("Room_Ceiling"));
-            Box(parent, "Wall_Left", new Vector3(-half.x - t * 0.5f, half.y, 0f), new Vector3(t, RoomSize.y, RoomSize.z), wall);
-            Box(parent, "Wall_Right", new Vector3(half.x + t * 0.5f, half.y, 0f), new Vector3(t, RoomSize.y, RoomSize.z), wall);
-            Box(parent, "Wall_Back", new Vector3(0f, half.y, -half.z - t * 0.5f), new Vector3(RoomSize.x, RoomSize.y, t), wall);
-            Box(parent, "Wall_Front", new Vector3(0f, half.y, half.z + t * 0.5f), new Vector3(RoomSize.x, RoomSize.y, t), wall);
-        }
-
-        /// <summary>Greybox furniture: simple primitive colliders only (SPEC). Real layouts come on Day 2-3.</summary>
-        private static void BuildProps(Transform parent)
-        {
-            var a = Mat("Prop_A");
-            var b = Mat("Prop_B");
-            var c = Mat("Prop_C");
-            var props = new GameObject("Props").transform;
-            props.SetParent(parent, false);
-
-            // Living area (left, middle): sofa, armchair, coffee table, rug-height TV bench.
-            Box(props, "Sofa_Seat", new Vector3(-8.5f, 0.25f, -1f), new Vector3(1f, 0.5f, 2.6f), a);
-            Box(props, "Sofa_Back", new Vector3(-9.15f, 0.6f, -1f), new Vector3(0.3f, 1.2f, 2.6f), a);
-            Box(props, "Armchair", new Vector3(-6f, 0.45f, -4f), new Vector3(1f, 0.9f, 1f), a);
-            Box(props, "CoffeeTable", new Vector3(-6.4f, 0.22f, -1f), new Vector3(0.8f, 0.44f, 1.3f), b);
-            Box(props, "TVBench", new Vector3(-3.2f, 0.3f, -1f), new Vector3(0.5f, 0.6f, 2.2f), b);
-            Box(props, "TV", new Vector3(-3.2f, 1.05f, -1f), new Vector3(0.3f, 0.9f, 1.6f), a);
-            // Right wall: two bookshelves.
-            Box(props, "Bookshelf_1", new Vector3(10.6f, 1.1f, -6f), new Vector3(0.7f, 2.2f, 1.8f), b);
-            Box(props, "Bookshelf_2", new Vector3(10.6f, 1.1f, -3.8f), new Vector3(0.7f, 2.2f, 1.8f), b);
-            // Dining area (right, far half): table + chairs.
-            Box(props, "DiningTable", new Vector3(5f, 0.38f, 7f), new Vector3(1.8f, 0.76f, 1f), b);
-            Box(props, "Chair_1", new Vector3(4.5f, 0.45f, 7.9f), new Vector3(0.45f, 0.9f, 0.45f), a);
-            Box(props, "Chair_2", new Vector3(5.5f, 0.45f, 6.1f), new Vector3(0.45f, 0.9f, 0.45f), a);
-            // Work corner near the launch end: desk.
-            Box(props, "Desk", new Vector3(7.5f, 0.38f, -13.5f), new Vector3(1.6f, 0.76f, 0.8f), b);
-            // Floor lamps, plants, a box stack, a tall cabinet in the far corner.
-            Primitive(props, PrimitiveType.Cylinder, "Lamp_Pole", new Vector3(-9.5f, 0.8f, -9f), new Vector3(0.06f, 0.8f, 0.06f), c);
-            Primitive(props, PrimitiveType.Cylinder, "Lamp_Shade", new Vector3(-9.5f, 1.7f, -9f), new Vector3(0.45f, 0.15f, 0.45f), b);
-            Primitive(props, PrimitiveType.Cylinder, "Lamp2_Pole", new Vector3(1.5f, 0.8f, 2f), new Vector3(0.06f, 0.8f, 0.06f), c);
-            Primitive(props, PrimitiveType.Cylinder, "Lamp2_Shade", new Vector3(1.5f, 1.7f, 2f), new Vector3(0.45f, 0.15f, 0.45f), b);
-            Primitive(props, PrimitiveType.Cylinder, "Plant_Pot", new Vector3(9.8f, 0.25f, 14.5f), new Vector3(0.5f, 0.25f, 0.5f), b);
-            Primitive(props, PrimitiveType.Sphere, "Plant_Leaves", new Vector3(9.8f, 0.95f, 14.5f), new Vector3(1f, 1.1f, 1f), c);
-            Primitive(props, PrimitiveType.Cylinder, "Plant2_Pot", new Vector3(-2f, 0.3f, 9f), new Vector3(0.6f, 0.3f, 0.6f), b);
-            Primitive(props, PrimitiveType.Sphere, "Plant2_Leaves", new Vector3(-2f, 1.2f, 9f), new Vector3(1.2f, 1.6f, 1.2f), c);
-            Box(props, "Box_1", new Vector3(-9.5f, 0.3f, 15f), new Vector3(0.6f, 0.6f, 0.6f), b);
-            Box(props, "Box_2", new Vector3(-8.85f, 0.25f, 15.1f), new Vector3(0.5f, 0.5f, 0.5f), a);
-            Box(props, "Box_3", new Vector3(-9.3f, 0.8f, 15f), new Vector3(0.45f, 0.4f, 0.45f), c);
-            Box(props, "Cabinet", new Vector3(10.6f, 1.25f, 10f), new Vector3(0.6f, 2.5f, 1.1f), a);
-        }
-
-        private static GameObject Box(Transform parent, string name, Vector3 center, Vector3 size, Material mat) =>
-            Primitive(parent, PrimitiveType.Cube, name, center, size, mat);
-
-        private static GameObject Primitive(Transform parent, PrimitiveType type, string name, Vector3 position, Vector3 scale, Material mat)
-        {
-            var go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = position;
-            go.transform.localScale = scale;
-            var renderer = go.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = mat;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            return go;
         }
     }
 }

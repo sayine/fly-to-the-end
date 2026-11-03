@@ -1,7 +1,13 @@
 {
     "name": "Template.Game",
     "rootNamespace": "Game",
-    "references": ["Template.Core", "Template.Services", "Template.UI", "Template.Flow"],
+    "references": [
+        "Template.Core",
+        "Template.Services",
+        "Template.UI",
+        "Template.Flow",
+        "Unity.TextMeshPro"
+    ],
     "autoReferenced": true,
     "noEngineReferences": false
 }

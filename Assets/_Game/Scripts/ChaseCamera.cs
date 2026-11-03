@@ -7,15 +7,16 @@ namespace Game
     /// <summary>
     /// Behind-and-above chase camera for the paper plane (GameConfig "Chase camera"). Follows the flat
     /// flight heading (not the nose), so pitch wobble and stalls don't swing the view. FOV rises with speed,
-    /// gentle roll with bank, and the position is kept inside the room box so it never clips through walls.
+    /// gentle roll with bank, and the position is kept inside the rooms (a union of boxes: rooms, hallway) so it
+    /// never clips through walls but can follow the plane through doorways.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class ChaseCamera : MonoBehaviour
     {
         [SerializeField] private GameConfig _config;
         [SerializeField] private PaperPlane _plane;
-        [Tooltip("Room interior (world space). The camera stays inside it minus ChaseWallMargin.")]
-        [SerializeField] private Bounds _room = new Bounds(Vector3.zero, new Vector3(14f, 5f, 20f));
+        [Tooltip("Interiors (world space). The camera stays inside one of them, minus ChaseWallMargin.")]
+        [SerializeField] private Bounds[] _areas = { new Bounds(Vector3.zero, new Vector3(14f, 5f, 20f)) };
         [SerializeField, HideInInspector] private Camera _camera;
 
         private Vector3 _heading = Vector3.forward;
@@ -67,11 +68,24 @@ namespace Game
         private Vector3 DesiredPosition(Vector3 target)
         {
             var p = target - _heading * _config.ChaseDistance + Vector3.up * _config.ChaseHeight;
+            if (_areas == null || _areas.Length == 0) return p;
             var m = _config.ChaseWallMargin;
-            var min = _room.min + new Vector3(m, m, m);
-            var max = _room.max - new Vector3(m, m, m);
+            // Fine where it is if it's inside any area (e.g. still in the room while the plane enters the hallway).
+            for (var i = 0; i < _areas.Length; i++)
+                if (Inside(_areas[i], p, m)) return p;
+            // Otherwise clamp into the area that holds the plane (or the first one).
+            var area = _areas[0];
+            for (var i = 0; i < _areas.Length; i++)
+                if (Inside(_areas[i], target, 0f)) { area = _areas[i]; break; }
+            var min = area.min + new Vector3(m, m, m);
+            var max = area.max - new Vector3(m, m, m);
             return new Vector3(Mathf.Clamp(p.x, min.x, max.x), Mathf.Clamp(p.y, min.y, max.y), Mathf.Clamp(p.z, min.z, max.z));
         }
+
+        private static bool Inside(Bounds b, Vector3 p, float margin) =>
+            p.x > b.min.x + margin && p.x < b.max.x - margin &&
+            p.y > b.min.y + margin && p.y < b.max.y - margin &&
+            p.z > b.min.z + margin && p.z < b.max.z - margin;
 
         private Quaternion DesiredRotation(Vector3 target, Vector3 from)
         {

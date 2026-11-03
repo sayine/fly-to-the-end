@@ -7,10 +7,11 @@ using UnityEngine;
 namespace Game.Editor
 {
     /// <summary>
-    /// Layout 1 wind (SPEC "Room and wind"): a floor fan pushing sideways across the launch path, a radiator
-    /// thermal by the left wall (free altitude), and a ceiling vent downdraft right of the path (hazard).
-    /// Sources (fan body, radiator, vent) are solid props; the wind zones themselves have no colliders.
-    /// Built under a non-static "Wind" root so the fan rotor can spin.
+    /// Layout 1 wind (SPEC "Room and wind"). Living room: a floor fan pushing sideways across the launch path, a
+    /// radiator thermal by the left wall near the shelf, a ceiling vent downdraft right of the path (hazard).
+    /// Hallway: a moderate floor fan blowing along it that carries the plane into the dining room. Dining room:
+    /// a radiator thermal. Sources are solid props (scaled like the furniture); zones have no colliders.
+    /// Built under a non-static "Wind" root so the fan rotors can spin.
     /// </summary>
     internal static class WindLayout
     {
@@ -20,7 +21,7 @@ namespace Game.Editor
         private const string DotPath = TexturesFolder + "/SoftDot.png";
         private const string RingPath = TexturesFolder + "/SoftRing.png";
 
-        private static readonly Vector3 FanDirection = new Vector3(1f, 0.14f, 0f).normalized;
+        private static float S => RoomLayout.FurnitureScale;
 
         public static WindConfig LoadOrCreateConfig() => EditorUtil.LoadOrCreate<WindConfig>(ConfigPath);
 
@@ -31,44 +32,82 @@ namespace Game.Editor
             var particleMat = ParticleMaterial();
             var markerMat = MarkerMaterial();
             var root = new GameObject("Wind").transform;
+            var living = RoomLayout.LivingRoom;
+            var hall = RoomLayout.Hallway;
+            var dining = RoomLayout.DiningRoom;
 
-            // Floor fan on the left, tilted ~8° up, blowing +X across the launch path ~10 m after launch.
-            Box(root, "Fan_Body", new Vector3(-9.7f, 0.6f, -5f), new Vector3(0.4f, 1.2f, 0.5f), propMat);
-            var rotor = Box(root, "Fan_Rotor", new Vector3(-9.45f, 1f, -5f), new Vector3(0.1f, 0.42f, 0.42f), propMat);
-            Object.DestroyImmediate(rotor.GetComponent<Collider>()); // blades are behind a grille: no crash
-            Zone(root, "Wind_Fan", WindKind.Fan, new Vector3(-9.35f, 1f, -5f), FanDirection, 14f, 0.3f, 2f,
+            // Living room: floor fan by the left wall, tilted ~8° up, blowing +X across the path ~6 m after launch.
+            var fanHead = Fan(root, "Fan", new Vector3(living.min.x + 1.3f, 0f, -9.2f), Vector3.right, propMat);
+            Zone(root, "Wind_Fan", WindKind.Fan, fanHead, new Vector3(1f, 0.14f, 0f).normalized, 14f, 0.3f * S, 2.2f, 1f,
                 config, particleMat, null);
 
-            // Radiator against the left wall with a big thermal column above it.
-            Box(root, "Radiator", new Vector3(-10.92f, 0.35f, 4f), new Vector3(0.15f, 0.6f, 1.2f), propMat);
-            Zone(root, "Wind_Thermal", WindKind.Thermal, new Vector3(-9.9f, 0.05f, 4f), Vector3.up, 6f, 1.4f, 1.8f,
-                config, particleMat, markerMat);
+            // Living room: radiator on the left wall near the shelf, big thermal column above it.
+            Radiator(root, "Radiator", new Vector3(living.min.x + 0.15f * S * 0.5f + 0.02f, 0f, -12.6f), propMat);
+            Zone(root, "Wind_Thermal", WindKind.Thermal, new Vector3(living.min.x + 1.1f, 0.05f, -12.6f), Vector3.up,
+                living.max.y - 0.6f, 1.4f, 1.8f, 1f, config, particleMat, markerMat);
 
-            // Ceiling AC vent right of the launch path, pushing down.
-            Box(root, "CeilingVent", new Vector3(3.5f, 6.95f, 0f), new Vector3(0.9f, 0.1f, 0.6f), propMat);
-            Zone(root, "Wind_Downdraft", WindKind.Downdraft, new Vector3(3.5f, 6.88f, 0f), Vector3.down, 6.8f, 1f, 1.8f,
-                config, particleMat, markerMat);
+            // Living room: ceiling AC vent right of the path, pushing down.
+            Box(root, "CeilingVent", new Vector3(4f, living.max.y - 0.05f, -4f), new Vector3(0.9f, 0.1f, 0.6f) * S, propMat);
+            Zone(root, "Wind_Downdraft", WindKind.Downdraft, new Vector3(4f, living.max.y - 0.12f, -4f), Vector3.down,
+                living.max.y - 0.15f, 1f, 1.8f, 1f, config, particleMat, markerMat);
+
+            // Hallway: moderate floor fan at the entrance (left side) blowing along the hallway toward the dining room.
+            var hallHead = Fan(root, "Fan2", new Vector3(hall.min.x + 0.75f, 0f, hall.min.z + 1.4f), Vector3.forward, propMat);
+            Zone(root, "Wind_HallFan", WindKind.Fan, hallHead, new Vector3(0.12f, 0.1f, 1f).normalized, 13f, 0.5f, 2.2f, 0.55f,
+                config, particleMat, null);
+
+            // Dining room: radiator thermal on the left wall.
+            Radiator(root, "Radiator2", new Vector3(dining.min.x + 0.15f * S * 0.5f + 0.02f, 0f, 30f), propMat);
+            Zone(root, "Wind_Thermal2", WindKind.Thermal, new Vector3(dining.min.x + 1.1f, 0.05f, 30f), Vector3.up,
+                dining.max.y - 0.6f, 1.4f, 1.8f, 1f, config, particleMat, markerMat);
             return root;
         }
 
-        /// <summary>After PropModels.Apply: put the blade model on a centred pivot that spins around the wind axis.</summary>
-        public static void FinishRotor(Transform root)
+        /// <summary>Floor fan (body + collider-less rotor box at the head) facing `facing`. Returns the head centre.</summary>
+        private static Vector3 Fan(Transform root, string name, Vector3 floorPoint, Vector3 facing, Material mat)
+        {
+            var side = Vector3.Cross(Vector3.up, facing);
+            var bodySize = Abs(side) * 0.5f * S + Vector3.up * 1.2f * S + Abs(facing) * 0.4f * S;
+            Box(root, name + "_Body", floorPoint + Vector3.up * bodySize.y * 0.5f, bodySize, mat);
+            var head = floorPoint + Vector3.up * 1.0f * S + facing * 0.25f * S;
+            var rotorSize = Abs(side) * 0.42f * S + Vector3.up * 0.42f * S + Abs(facing) * 0.1f * S;
+            var rotor = Box(root, name + "_Rotor", head, rotorSize, mat);
+            Object.DestroyImmediate(rotor.GetComponent<Collider>()); // blades are behind a grille: no crash
+            return head + facing * 0.1f * S;
+        }
+
+        private static void Radiator(Transform root, string name, Vector3 floorPoint, Material mat)
+        {
+            var size = new Vector3(0.15f, 0.6f, 1.2f) * S;
+            Box(root, name, floorPoint + Vector3.up * size.y * 0.5f, size, mat);
+        }
+
+        private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
+
+        /// <summary>After PropModels.Apply: put each fan's blade model on a centred pivot that spins around its axis.</summary>
+        public static void FinishRotors(Transform root)
+        {
+            FinishRotor(root, "Fan_Rotor_Model", Vector3.right);
+            FinishRotor(root, "Fan2_Rotor_Model", Vector3.forward);
+        }
+
+        private static void FinishRotor(Transform root, string modelName, Vector3 axis)
         {
             var config = AssetDatabase.LoadAssetAtPath<WindConfig>(ConfigPath);
-            var blades = root.Find("Fan_Rotor_Model");
+            var blades = root.Find(modelName);
             if (blades == null) return;
             var renderers = blades.GetComponentsInChildren<Renderer>();
             var bounds = renderers[0].bounds;
             foreach (var r in renderers) bounds.Encapsulate(r.bounds);
-            var pivot = new GameObject("Fan_Rotor_Pivot").transform;
+            var pivot = new GameObject(modelName.Replace("_Model", "_Pivot")).transform;
             pivot.SetParent(root, false);
-            pivot.SetPositionAndRotation(bounds.center, Quaternion.LookRotation(Vector3.right)); // blades face +X
+            pivot.SetPositionAndRotation(bounds.center, Quaternion.LookRotation(axis));
             blades.SetParent(pivot, true);
             EditorUtil.Set(pivot.gameObject.AddComponent<Spinner>(), "_config", config);
         }
 
         private static void Zone(Transform root, string name, WindKind kind, Vector3 origin, Vector3 direction,
-            float length, float startRadius, float endRadius, WindConfig config, Material particleMat, Material markerMat)
+            float length, float startRadius, float endRadius, float strengthScale, WindConfig config, Material particleMat, Material markerMat)
         {
             var go = new GameObject(name, typeof(ParticleSystem));
             go.transform.SetParent(root, false);
@@ -82,6 +121,7 @@ namespace Game.Editor
             so.FindProperty("_length").floatValue = length;
             so.FindProperty("_startRadius").floatValue = startRadius;
             so.FindProperty("_endRadius").floatValue = endRadius;
+            so.FindProperty("_strengthScale").floatValue = strengthScale;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             go.GetComponent<ParticleSystemRenderer>().sharedMaterial = particleMat;

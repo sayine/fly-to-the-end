@@ -16,6 +16,8 @@ namespace Game.Wind
         [SerializeField, Min(0.1f)] private float _length = 10f;
         [SerializeField, Min(0.05f)] private float _startRadius = 0.4f;
         [SerializeField, Min(0.05f)] private float _endRadius = 2f;
+        [Tooltip("This zone's strength relative to its kind in WindConfig (e.g. 0.55 for a gentle helper fan).")]
+        [SerializeField, Range(0f, 3f)] private float _strengthScale = 1f;
 
         private Vector3 _origin;
         private Vector3 _axis = Vector3.forward;
@@ -51,7 +53,7 @@ namespace Game.Wind
                 _config.LengthFalloff, _config.EdgeSoftness);
             if (strength <= 0f) return Vector3.zero;
             var noise = Mathf.PerlinNoise(_noiseSeed + time * _config.TurbulenceFrequency, position.y * 0.5f) * 2f - 1f;
-            return _axis * (strength * _config.Strength(_kind) * (1f + _config.Turbulence * noise));
+            return _axis * (strength * _strengthScale * _config.Strength(_kind) * (1f + _config.Turbulence * noise));
         }
 
 #if UNITY_EDITOR
