@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9093c1b1f03a949c3b7e11fd0eef9db7, type: 3}
   m_Name: InputConfig
   m_EditorClassIdentifier: 
-  _mode: 1
+  _mode: 0
   _maxTiltAngle: 20
   _tiltSensitivity: 1
   _tiltDeadZone: 0.05

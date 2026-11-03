@@ -85,8 +85,15 @@ namespace Game.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
 
             go.GetComponent<ParticleSystemRenderer>().sharedMaterial = particleMat;
+            var ribbons = new GameObject("Ribbons", typeof(ParticleSystem));
+            ribbons.transform.SetParent(go.transform, false);
+            var ribbonRenderer = ribbons.GetComponent<ParticleSystemRenderer>();
+            ribbonRenderer.sharedMaterial = particleMat;
+            ribbonRenderer.trailMaterial = particleMat;
+
             var visual = go.AddComponent<WindVisual>();
             EditorUtil.Set(visual, "_config", config);
+            EditorUtil.Set(visual, "_ribbons", ribbons.GetComponent<ParticleSystem>());
 
             if (markerMat != null)
             {

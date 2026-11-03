@@ -6,7 +6,7 @@ namespace Game.Tests
 {
     /// <summary>
     /// Integrates FlightModel with default FlightConfig values (explicit Euler at 50 Hz, like FixedUpdate)
-    /// and checks the feel targets: ~10:1 physical glide, ~30:1 with the arcade assist (long runs that end on a
+    /// and checks the feel targets: ~10:1 physical glide, very flat arcade glide (25 s+ untouched, runs end on a
     /// crash), fast throws don't balloon into the ceiling, stalls recover, banking turns the right way. Prints numbers so tuning changes are easy to compare.
     /// </summary>
     public class FlightModelTests
@@ -29,7 +29,7 @@ namespace Game.Tests
             public Vector3 Position;
         }
 
-        private Result Fly(float speed, float pitchDeg, float height, FlightControls controls, float maxTime = 30f, float ceiling = Ceiling)
+        private Result Fly(float speed, float pitchDeg, float height, FlightControls controls, float maxTime = 90f, float ceiling = Ceiling)
         {
             var velocity = Quaternion.Euler(-pitchDeg, 0f, 0f) * Vector3.forward * speed;
             var s = FlightState.Launch(velocity, _cfg, 0f);
@@ -56,7 +56,7 @@ namespace Game.Tests
         [Test]
         public void PhysicalGlide_WithoutAssist_IsAboutTenToOne()
         {
-            JsonUtility.FromJsonOverwrite("{\"_glideAssist\":0,\"_verticalDamping\":0}", _cfg);
+            JsonUtility.FromJsonOverwrite("{\"_glideAssist\":0,\"_verticalDamping\":0,\"_cruiseAssist\":0}", _cfg);
             var r = Fly(5f, -5.7f, 40f, default, 120f, float.MaxValue);
             var ratio = r.Distance / 40f;
             Debug.Log($"[Flight] physical glide ratio {ratio:0.0}:1, speed {r.EndSpeed:0.00} m/s");
@@ -67,10 +67,11 @@ namespace Game.Tests
         [Test]
         public void ArcadeGlide_WithDefaults_IsLongAndSlowSinking()
         {
-            var r = Fly(5f, -2f, 40f, default, 300f, float.MaxValue);
-            var ratio = r.Distance / 40f;
-            Debug.Log($"[Flight] arcade glide ratio {ratio:0.0}:1, sink {40f / r.Time:0.00} m/s, speed {r.EndSpeed:0.00} m/s");
-            Assert.GreaterOrEqual(ratio, 20f);
+            var r = Fly(5f, -2f, 40f, default, 120f, float.MaxValue);
+            var drop = 40f - r.Position.y;
+            var ratio = r.Distance / Mathf.Max(0.01f, drop);
+            Debug.Log($"[Flight] arcade glide ratio {ratio:0.0}:1, sink {drop / r.Time:0.000} m/s, speed {r.EndSpeed:0.00} m/s");
+            Assert.GreaterOrEqual(ratio, 50f, "sink-rate hold + cruise push: very flat neutral glide");
             Assert.IsFalse(r.EverStalled);
         }
 
@@ -84,7 +85,7 @@ namespace Game.Tests
             var r = Fly(speed, pitch, PadHeight, default);
             Debug.Log($"[Flight] launch {speed} m/s @ {pitch}°: {r.Time:0.0}s, {r.Distance:0.0} m, peak {r.MaxHeight:0.00} m");
             Assert.IsFalse(r.HitCeiling, $"balloons into the ceiling (peak {r.MaxHeight:0.00} m)");
-            Assert.Greater(r.Time, 8f, "in open air an untouched throw should glide a long time; walls/props end runs");
+            Assert.Greater(r.Time, 25f, "in open air an untouched throw should glide 25 s+; walls/props end runs");
         }
 
         [Test]
@@ -126,12 +127,12 @@ namespace Game.Tests
         }
 
         [Test]
-        public void TiltShape_DeadZoneExpoSensitivity()
+        public void PadShape_DeadZoneExpoSensitivity()
         {
-            Assert.AreEqual(0f, TiltSteering.Shape(0.03f, 0.05f, 1.5f, 1f));
-            Assert.AreEqual(1f, TiltSteering.Shape(1f, 0.05f, 1.5f, 1f), 1e-4f);
-            Assert.AreEqual(-1f, TiltSteering.Shape(-2f, 0.05f, 1f, 3f), 1e-4f);
-            Assert.Less(TiltSteering.Shape(0.5f, 0f, 2f, 1f), 0.5f, "expo > 1 softens the centre");
+            Assert.AreEqual(0f, PadSteering.Shape(0.03f, 0.05f, 1.5f, 1f));
+            Assert.AreEqual(1f, PadSteering.Shape(1f, 0.05f, 1.5f, 1f), 1e-4f);
+            Assert.AreEqual(-1f, PadSteering.Shape(-2f, 0.05f, 1f, 3f), 1e-4f);
+            Assert.Less(PadSteering.Shape(0.5f, 0f, 2f, 1f), 0.5f, "expo > 1 softens the centre");
         }
 
         [Test]

@@ -49,7 +49,8 @@ namespace Game.Flight
     /// always weathervanes into its velocity and can't gimbal-lock or spin out.
     ///   Lift  = LiftCoef * v² * LiftCurve(AoA), perpendicular to the path in the vertical plane, capped at MaxLiftG (soft knee).
     ///   Drag  = (DragCoef + InducedDrag * AoA²) * v², opposite to the path, minus GlideAssist * DragCoef * min(v, Cruise)².
-    ///   Vertical damping (not while stalled) settles the glide instead of a climb/dive oscillation.
+    ///   Arcade assists: cruise push up to CruiseSpeed, and (not while stalled) a sink-rate hold that settles the
+    ///   glide at NeutralSinkRate; pitch input releases the hold so climbs and dives still work.
     ///   Turn  = yaw rate Bank * TurnRate applied directly to the velocity (no sideslip).
     ///   Stall = speed &lt; StallSpeed or AoA &gt; StallAngle: nose drops, lift collapses, gentle wobble, recover by gaining speed.
     /// </summary>
@@ -127,8 +128,16 @@ namespace Game.Flight
                 s.Heading = turn * s.Heading;
             }
 
-            var acceleration = gravity * cfg.GravityScale + liftDir * lift - dir * drag;
-            if (!s.Stalled) acceleration.y -= cfg.VerticalDamping * s.Velocity.y; // calm glide, no phugoid
+            // Arcade cruise push: back up to cruise speed when slower.
+            var thrust = cfg.CruiseAssist * Mathf.Max(0f, cfg.CruiseSpeed - speed);
+
+            var acceleration = gravity * cfg.GravityScale + liftDir * lift + dir * (thrust - drag);
+            if (!s.Stalled)
+            {
+                // Sink-rate hold: settle to a slow neutral sink (long, calm glides, no phugoid); pitch input releases it.
+                var hold = cfg.VerticalDamping * (1f - cfg.PitchHoldRelease * Mathf.Abs(pitch));
+                acceleration.y += hold * (-cfg.NeutralSinkRate - s.Velocity.y);
+            }
             return acceleration;
         }
 

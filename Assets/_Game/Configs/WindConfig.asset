@@ -13,18 +13,10 @@ MonoBehaviour:
   m_Name: WindConfig
   m_EditorClassIdentifier: 
   _globalStrength: 1
-  _fanStrength: 4
-  _thermalStrength: 2.5
-  _downdraftStrength: 3
+  _fanStrength: 6.5
+  _thermalStrength: 5
+  _downdraftStrength: 5.5
   _lengthFalloff: 0.5
   _edgeSoftness: 0.4
   _turbulence: 0.3
   _turbulenceFrequency: 1.2
-  _streakSpeed: 3
-  _streakDensity: 1.2
-  _maxParticlesPerZone: 90
-  _fanColor: {r: 1, g: 1, b: 1, a: 0.6}
-  _thermalColor: {r: 1, g: 0.55, b: 0.2, a: 0.85}
-  _downdraftColor: {r: 0.55, g: 0.78, b: 1, a: 0.55}
-  _floorMarkerAlpha: 0.35
-  _bladeSpeed: 900

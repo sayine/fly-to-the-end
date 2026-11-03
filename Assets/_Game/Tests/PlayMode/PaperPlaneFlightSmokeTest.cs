@@ -34,7 +34,7 @@ namespace Game.Tests
 
             var plane = Object.FindFirstObjectByType<PaperPlane>();
             var game = Object.FindFirstObjectByType<PaperPlaneGame>();
-            Assert.IsNotNull(plane, "PaperPlane missing in Game scene (run Tools/Game/Build Paper Plane Scene)");
+            Assert.IsNotNull(plane, "PaperPlane missing in Game scene (run Tools/Game/Build Paper Plane Scenes)");
             Assert.IsNotNull(game, "PaperPlaneGame missing in Game scene");
             Assert.AreEqual(PaperPlane.Phase.Ready, plane.CurrentPhase);
 

@@ -1,4 +1,5 @@
 using Game.Flight;
+using Game.Menu;
 using Template.Editor;
 using Template.Services.Input;
 using Template.UI.DevTools;
@@ -6,13 +7,14 @@ using Template.UI.Screens;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Game.Editor
 {
     /// <summary>
-    /// Generates the Paper Flight Day 1 content: FlightConfig, materials, the paper-plane mesh + prefab, and the
-    /// greybox room Game scene (launch pad, props, chase camera, PaperPlaneGame, dev tuning panel).
-    /// Runs from Tools/Template/Generate (via [GameContentBuilder]) or Tools/Game/Build Paper Plane Scene.
+    /// Generates the Paper Flight content: configs, materials, the paper-plane mesh + prefab, the Game scene
+    /// (room, Meshy props, wind, chase camera, steering pad, PaperPlaneGame, dev tuning panel) and the Menu scene.
+    /// Runs from Tools/Template/Generate (via [GameContentBuilder]) or Tools/Game/Build Paper Plane Scenes.
     /// Batchmode: -executeMethod Game.Editor.PaperPlaneContentBuilder.BuildBatch
     /// </summary>
     public static class PaperPlaneContentBuilder
@@ -37,7 +39,7 @@ namespace Game.Editor
 
         private static readonly Color Background = new Color(0.96f, 0.88f, 0.78f);
 
-        [MenuItem("Tools/Game/Build Paper Plane Scene (overwrite)", priority = 0)]
+        [MenuItem("Tools/Game/Build Paper Plane Scenes (overwrite)", priority = 0)]
         public static void BuildMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -59,22 +61,23 @@ namespace Game.Editor
             var mesh = BuildMesh();
             BuildPlanePrefab(mesh, force);
 
-            if (!force && SceneGenerator.Exists(SceneGenerator.GamePath) && IsPaperPlaneScene(SceneGenerator.GamePath))
-            {
-                Log.Info("Paper Plane Game scene exists, kept (use Tools/Game/Build Paper Plane Scene to rebuild).");
-                return;
-            }
-            BuildScene();
+            if (!force && SceneGenerator.Exists(SceneGenerator.GamePath) && UsesScript<PaperPlaneGame>(SceneGenerator.GamePath))
+                Log.Info("Paper Plane Game scene exists, kept (use Tools/Game/Build Paper Plane Scenes to rebuild).");
+            else BuildScene();
+
+            if (!force && SceneGenerator.Exists(SceneGenerator.MenuPath) && UsesScript<MenuBackdrop>(SceneGenerator.MenuPath))
+                Log.Info("Paper Plane Menu scene exists, kept.");
+            else BuildMenuScene();
         }
 
-        /// <summary>True if the scene uses PaperPlaneGame (vs. the template's placeholder Game scene).</summary>
-        private static bool IsPaperPlaneScene(string path)
+        /// <summary>True if the scene uses script T (i.e. it's ours, not the template's placeholder).</summary>
+        private static bool UsesScript<T>(string path) where T : MonoBehaviour
         {
             string script = null;
-            foreach (var guid in AssetDatabase.FindAssets($"{nameof(PaperPlaneGame)} t:MonoScript"))
+            foreach (var guid in AssetDatabase.FindAssets($"{typeof(T).Name} t:MonoScript"))
             {
                 var p = AssetDatabase.GUIDToAssetPath(guid);
-                if (AssetDatabase.LoadAssetAtPath<MonoScript>(p)?.GetClass() == typeof(PaperPlaneGame)) script = p;
+                if (AssetDatabase.LoadAssetAtPath<MonoScript>(p)?.GetClass() == typeof(T)) script = p;
             }
             if (script == null) return false;
             foreach (var dep in AssetDatabase.GetDependencies(path, false))
@@ -227,36 +230,9 @@ namespace Game.Editor
         private static void BuildScene()
         {
             var scene = SceneGenerator.NewScene();
-            RenderSettings.ambientLight = new Color(0.72f, 0.68f, 0.64f);
-
-            var camGo = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
-            camGo.tag = "MainCamera";
-            var cam = camGo.GetComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Background;
-            cam.fieldOfView = 60f;
-            cam.nearClipPlane = 0.05f;
-            cam.farClipPlane = 60f;
-
-            var lightGo = new GameObject("Directional Light", typeof(Light));
-            var light = lightGo.GetComponent<Light>();
-            light.type = LightType.Directional;
-            light.color = new Color(1f, 0.95f, 0.86f);
-            light.intensity = 0.9f;
-            light.shadows = LightShadows.None; // SPEC: no realtime shadows (the plane gets a blob shadow)
-            lightGo.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
-
-            var room = new GameObject("Room").transform;
-            BuildRoom(room);
-            var pad = Box(room, "LaunchPad", PadCenter, PadSize, Mat("LaunchPad"));
-            BuildProps(room);
-            PropModels.Apply(room); // Meshy models over greybox colliders, where available
-            foreach (var t in room.GetComponentsInChildren<Transform>())
-                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
-
-            var wind = WindLayout.Build(Mat("Prop_C")); // not static: the fan rotor spins
-            PropModels.Apply(wind);
-            WindLayout.FinishRotor(wind);
+            var cam = CreateCamera();
+            CreateLight();
+            var pad = BuildEnvironment();
 
             var launchPoint = new GameObject("LaunchPoint").transform;
             launchPoint.SetPositionAndRotation(LaunchPosition, Quaternion.identity);
@@ -278,7 +254,7 @@ namespace Game.Editor
             arrow.receiveShadows = false;
             arrow.enabled = false;
 
-            var chase = camGo.AddComponent<ChaseCamera>();
+            var chase = cam.gameObject.AddComponent<ChaseCamera>();
             EditorUtil.Set(chase, "_config", AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath));
             EditorUtil.Set(chase, "_plane", plane);
             EditorUtil.Set(chase, "_camera", cam);
@@ -295,6 +271,7 @@ namespace Game.Editor
             EditorUtil.Set(game, "_chaseCamera", chase);
             EditorUtil.Set(game, "_camera", cam);
             EditorUtil.Set(game, "_aimArrow", arrow);
+            EditorUtil.Set(game, "_padView", BuildControlPad());
 
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);
@@ -309,6 +286,125 @@ namespace Game.Editor
 
             EditorSceneManager.SaveScene(scene, SceneGenerator.GamePath);
             Log.Info($"Saved {SceneGenerator.GamePath} (Paper Plane greybox room)");
+        }
+
+        /// <summary>Menu: the same room and wind, a decor plane looping overhead and a slowly circling camera.</summary>
+        private static void BuildMenuScene()
+        {
+            var scene = SceneGenerator.NewScene();
+            var cam = CreateCamera();
+            CreateLight();
+            BuildEnvironment();
+
+            var flyer = new GameObject("MenuPlane", typeof(MeshFilter), typeof(MeshRenderer));
+            flyer.GetComponent<MeshFilter>().sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(MeshPath);
+            var flyerRenderer = flyer.GetComponent<MeshRenderer>();
+            flyerRenderer.sharedMaterial = Mat("Plane");
+            flyerRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            flyer.transform.localScale = Vector3.one * 3f; // reads at menu distance
+            var config = AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath);
+            EditorUtil.Set(flyer.AddComponent<MenuFlyer>(), "_config", config);
+
+            var backdrop = cam.gameObject.AddComponent<MenuBackdrop>();
+            EditorUtil.Set(backdrop, "_config", config);
+            EditorUtil.Set(backdrop, "_flyer", flyer.transform);
+
+            EditorSceneManager.SaveScene(scene, SceneGenerator.MenuPath);
+            Log.Info($"Saved {SceneGenerator.MenuPath} (Paper Plane menu backdrop)");
+        }
+
+        private static Camera CreateCamera()
+        {
+            var camGo = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+            camGo.tag = "MainCamera";
+            var cam = camGo.GetComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Background;
+            cam.fieldOfView = 60f;
+            cam.nearClipPlane = 0.05f;
+            cam.farClipPlane = 60f;
+            return cam;
+        }
+
+        private static void CreateLight()
+        {
+            RenderSettings.ambientLight = new Color(0.72f, 0.68f, 0.64f);
+            var lightGo = new GameObject("Directional Light", typeof(Light));
+            var light = lightGo.GetComponent<Light>();
+            light.type = LightType.Directional;
+            light.color = new Color(1f, 0.95f, 0.86f);
+            light.intensity = 0.9f;
+            light.shadows = LightShadows.None; // SPEC: no realtime shadows (the plane gets a blob shadow)
+            lightGo.transform.rotation = Quaternion.Euler(55f, -35f, 0f);
+        }
+
+        /// <summary>Room, furniture (Meshy models over greybox colliders) and wind. Returns the launch pad.</summary>
+        private static GameObject BuildEnvironment()
+        {
+            var room = new GameObject("Room").transform;
+            BuildRoom(room);
+            var pad = Box(room, "LaunchPad", PadCenter, PadSize, Mat("LaunchPad"));
+            BuildProps(room);
+            PropModels.Apply(room);
+            foreach (var t in room.GetComponentsInChildren<Transform>())
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, StaticEditorFlags.BatchingStatic);
+
+            var wind = WindLayout.Build(Mat("Prop_C")); // not static: the fan rotor spins
+            PropModels.Apply(wind);
+            WindLayout.FinishRotor(wind);
+            return pad;
+        }
+
+        /// <summary>Screen-space steering pad: rounded strip + anchor ring + knob (no raycasts: never blocks HUD buttons).</summary>
+        private static ControlPadView BuildControlPad()
+        {
+            var root = new GameObject("ControlPad", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 5; // under the UIRoot (10)
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            var rounded = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+            var circle = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+
+            var pad = UiImage(root.transform, "Pad", rounded, new Color(1f, 1f, 1f, 0.16f), Vector2.zero);
+            pad.type = Image.Type.Sliced;
+            var group = pad.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            var hint = UiImage(pad.transform, "CenterLine", null, new Color(1f, 1f, 1f, 0.12f), new Vector2(4f, 0f));
+            var hintRt = hint.rectTransform;
+            hintRt.anchorMin = new Vector2(0.5f, 0.15f);
+            hintRt.anchorMax = new Vector2(0.5f, 0.85f);
+            hintRt.sizeDelta = new Vector2(4f, 0f);
+            var ring = UiImage(pad.transform, "Ring", circle, new Color(1f, 1f, 1f, 0.35f), new Vector2(190f, 190f));
+            var knob = UiImage(pad.transform, "Knob", circle, new Color(1f, 1f, 1f, 0.85f), new Vector2(96f, 96f));
+
+            var view = root.AddComponent<ControlPadView>();
+            EditorUtil.Set(view, "_canvas", canvas);
+            EditorUtil.Set(view, "_pad", pad.rectTransform);
+            EditorUtil.Set(view, "_ring", ring.rectTransform);
+            EditorUtil.Set(view, "_knob", knob.rectTransform);
+            EditorUtil.Set(view, "_group", group);
+            canvas.enabled = false; // shown while flying
+            return view;
+        }
+
+        private static Image UiImage(Transform parent, string name, Sprite sprite, Color color, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var image = go.GetComponent<Image>();
+            image.sprite = sprite;
+            image.color = color;
+            image.raycastTarget = false;
+            var rt = image.rectTransform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = size;
+            return image;
         }
 
         private static void BuildRoom(Transform parent)

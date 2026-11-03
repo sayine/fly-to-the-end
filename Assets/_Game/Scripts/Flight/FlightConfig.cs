@@ -5,8 +5,8 @@ namespace Game.Flight
     /// <summary>
     /// Arcade paper-plane flight model and launch tuning (SPEC "Flight model"). Forces are accelerations
     /// (mass independent). Every float has a [Range] so DevTuningPanel can draw a slider for it.
-    /// Defaults: ~10:1 physical glide at ~5 m/s, lifted to ~30:1 by the arcade glide assist, so untouched
-    /// throws fly 10-25 s in open air (checked by FlightModelTests).
+    /// Defaults: ~10:1 physical glide at ~5 m/s; the arcade assists (drag cancel, cruise push, sink-rate hold)
+    /// make untouched throws fly ~25-45 s in open air, longer with thermals (checked by FlightModelTests).
     /// </summary>
     [CreateAssetMenu(menuName = "Game/Configs/Flight Config", fileName = "FlightConfig")]
     public sealed class FlightConfig : ScriptableObject
@@ -32,8 +32,14 @@ namespace Game.Flight
         [SerializeField, Range(0f, 1f)] private float _glideAssist = 0.8f;
         [Tooltip("Speed (m/s) up to which drag is cancelled. Faster throws slow back down to it.")]
         [SerializeField, Range(1f, 12f)] private float _cruiseSpeed = 5f;
-        [Tooltip("Damps vertical speed (1/s) so the plane settles into a calm glide instead of climb-and-dive oscillation. Off while stalled.")]
-        [SerializeField, Range(0f, 5f)] private float _verticalDamping = 1f;
+        [Tooltip("Gentle push (1/s) back up to CruiseSpeed when slower, so long glides never bleed into a stall.")]
+        [SerializeField, Range(0f, 5f)] private float _cruiseAssist = 3f;
+        [Tooltip("Vertical speed the glide settles to with no pitch input (m/s, down). 0.02 ≈ 30-45 s from the launch shelf.")]
+        [SerializeField, Range(0f, 1f)] private float _neutralSinkRate = 0.02f;
+        [Tooltip("How hard (1/s) vertical speed is pulled to the neutral sink rate. Calms climb/dive oscillation. Off while stalled.")]
+        [SerializeField, Range(0f, 8f)] private float _verticalDamping = 4f;
+        [Tooltip("Fraction of that hold released at full pitch input, so the player can still climb and dive.")]
+        [SerializeField, Range(0f, 1f)] private float _pitchHoldRelease = 0.8f;
 
         [Header("Pitch (angle of attack)")]
         [Tooltip("AoA (deg) with no pitch input. Sets the glide speed together with LiftCoef.")]
@@ -110,7 +116,10 @@ namespace Game.Flight
         public float InducedDragCoef => _inducedDragCoef;
         public float GlideAssist => _glideAssist;
         public float CruiseSpeed => _cruiseSpeed;
+        public float CruiseAssist => _cruiseAssist;
+        public float NeutralSinkRate => _neutralSinkRate;
         public float VerticalDamping => _verticalDamping;
+        public float PitchHoldRelease => _pitchHoldRelease;
         public AnimationCurve LiftCurve => _liftCurve;
         public float TrimAoa => _trimAoa;
         public float PitchUpAuthority => _pitchUpAuthority;

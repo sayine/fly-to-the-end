@@ -27,7 +27,7 @@ namespace Template.Editor
         private const string MaterialsFolder = "Assets/_Game/Art/Materials";
 
         private static string BootPath => $"{ScenesFolder}/{SceneNames.Boot}.unity";
-        private static string MenuPath => $"{ScenesFolder}/{SceneNames.Menu}.unity";
+        public static string MenuPath => $"{ScenesFolder}/{SceneNames.Menu}.unity";
         public static string GamePath => $"{ScenesFolder}/{SceneNames.Game}.unity";
         private static string DemoPath => $"{GameScenesFolder}/{SceneNames.DemoTilt}.unity";
 

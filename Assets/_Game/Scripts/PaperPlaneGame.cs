@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Game
 {
     /// <summary>
-    /// Paper Flight core loop (Day 1): plane on the pad → flick to launch → tilt to steer → any contact
+    /// Paper Flight core loop: plane on the shelf → flick to launch → one-finger pad to steer → any contact
     /// crashes → short settle → PlayerDiedEvent. Score = seconds airborne, raised in tenths
     /// (ScoreChangedEvent is an int; the HUD shows it with scale 0.1).
     /// Talks to the flow only through events, like the template's placeholder game.
@@ -33,6 +33,8 @@ namespace Game
         [SerializeField] private Camera _camera;
         [Tooltip("Faint direction preview while dragging (SPEC: no full trajectory).")]
         [SerializeField] private LineRenderer _aimArrow;
+        [Tooltip("Bottom steering pad visuals (shown while flying).")]
+        [SerializeField] private ControlPadView _padView;
 
         private const float ArrowMinLength = 0.5f;
         private const float ArrowMaxLength = 1.4f;
@@ -40,7 +42,7 @@ namespace Game
         private readonly FlickGesture _flick = new FlickGesture();
         private IPlayerInput _input;
         private IHapticService _haptics;
-        private TiltSteering _steering;
+        private PadSteering _steering;
         private RunPhase _phase;
         private bool _playing;
         private float _airTime;      // accumulated over the run (kept across a rewarded continue)
@@ -54,7 +56,7 @@ namespace Game
         {
             ServiceLocator.TryGet(out _input);
             ServiceLocator.TryGet(out _haptics);
-            _steering = new TiltSteering(_gameConfig);
+            _steering = new PadSteering(_gameConfig);
             _plane.Crashed += OnCrashed;
             SetArrow(false);
             ParkPlane();
@@ -99,7 +101,9 @@ namespace Game
             {
                 _flick.Cancel();
                 SetArrow(false);
+                _steering.Reset();
             }
+            if (_padView != null) _padView.SetVisible(_playing && _phase == RunPhase.Flying);
         }
 
         // ---------- Loop ----------
@@ -147,7 +151,15 @@ namespace Game
 
         private void UpdateFlying(float dt)
         {
-            if (_input != null) _plane.Controls = _steering.Update(_input.Axis, dt);
+            if (_input != null)
+            {
+                var pressed = _input.IsPressed;
+                _plane.Controls = _steering.Update(pressed, pressed && !_wasPressed, _input.PointerPosition, !DevTuningPanel.IsOpen, dt);
+                _wasPressed = pressed;
+                if (_padView != null)
+                    _padView.Refresh(PadSteering.PadRect(_gameConfig, Screen.safeArea), _steering.Active, _steering.Anchor,
+                        _steering.Drag, _gameConfig.PadTravel * Screen.height);
+            }
 
             _airTime += dt;
             var tenths = Mathf.FloorToInt(_airTime * 10f);
@@ -180,11 +192,13 @@ namespace Game
             if (!_playing || _phase != RunPhase.Aiming) return false;
             _flick.Cancel();
             SetArrow(false);
-            _input?.Calibrate(); // SPEC: how the phone is held at release = neutral, every run
+            _input?.Calibrate(); // no-op with touch input; re-centres tilt if InputConfig is switched back to Tilt
             _steering.Reset();
             _plane.Launch(velocity, _launchPad);
             _lastPosition = _plane.transform.position;
             _phase = RunPhase.Flying;
+            _wasPressed = _input != null && _input.IsPressed; // the launching finger can't start a steer
+            SetPad(true);
             _haptics?.Play(HapticType.Light);
             return true;
         }
@@ -194,6 +208,7 @@ namespace Game
             if (_phase != RunPhase.Flying) return;
             _phase = RunPhase.Settling;
             _settleTimer = 0f;
+            SetPad(false);
             _plane.Controls = default;
             _haptics?.Play(HapticType.Medium);
             Debug.Log($"[Plane] crash into {(hit != null ? hit.name : "out of bounds")} air={_airTime:0.0}s dist={_distance:0.0}m");
@@ -205,6 +220,7 @@ namespace Game
             _flick.Cancel();
             _wasPressed = _input != null && _input.IsPressed; // a held finger from the previous screen can't launch
             SetArrow(false);
+            SetPad(false);
             _plane.PlaceAt(_launchPoint.position, _launchPoint.rotation);
             _steering.Reset();
             if (_chaseCamera != null) _chaseCamera.Snap(_launchPoint.forward);
@@ -226,6 +242,11 @@ namespace Game
             var length = Mathf.Lerp(ArrowMinLength, ArrowMaxLength, aim.Power);
             _aimArrow.SetPosition(0, start);
             _aimArrow.SetPosition(1, start + aim.Velocity.normalized * length);
+        }
+
+        private void SetPad(bool visible)
+        {
+            if (_padView != null) _padView.SetVisible(visible);
         }
 
         private void SetArrow(bool visible)
@@ -253,7 +274,7 @@ namespace Game
             if (_input != null)
             {
                 var c = _plane.Controls;
-                sb.Append("tilt ").Append(_input.Axis.x.ToString("0.00")).Append(',').Append(_input.Axis.y.ToString("0.00"))
+                sb.Append("pad ").Append(_steering.Drag.x.ToString("0.00")).Append(',').Append(_steering.Drag.y.ToString("0.00"))
                   .Append("  ctrl bank ").Append(c.Bank.ToString("0.00")).Append(" pitch ").Append(c.Pitch.ToString("0.00"));
             }
         }

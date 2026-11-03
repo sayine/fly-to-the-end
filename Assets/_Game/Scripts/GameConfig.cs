@@ -3,7 +3,8 @@ using UnityEngine;
 namespace Game
 {
     /// <summary>
-    /// Gameplay tuning outside the flight model (CLAUDE.md rule 2): tilt steering, chase camera, run rules.
+    /// Gameplay tuning outside the flight model (CLAUDE.md rule 2): touch-pad steering, chase camera, run rules,
+    /// menu backdrop.
     /// The "placeholder game" sections still drive Demo_Tilt and the template Menu scene.
     /// </summary>
     [CreateAssetMenu(menuName = "Template/Configs/Game Config", fileName = "GameConfig")]
@@ -24,21 +25,39 @@ namespace Game
         [SerializeField] private Vector3 _cameraOffset = new Vector3(0f, 12f, -7f);
         [SerializeField, Min(0.1f)] private float _cameraFollowSharpness = 6f;
 
-        [Header("Tilt steering (per axis, applied after InputConfig)")]
-        [Tooltip("Bank input multiplier (tilt left/right).")]
-        [SerializeField, Range(0.1f, 3f)] private float _bankSensitivity = 1.3f;
-        [Tooltip("Pitch input multiplier (tilt forward/back).")]
-        [SerializeField, Range(0.1f, 3f)] private float _pitchSensitivity = 1.2f;
-        [SerializeField, Range(0f, 0.5f)] private float _bankDeadZone = 0.03f;
-        [SerializeField, Range(0f, 0.5f)] private float _pitchDeadZone = 0.05f;
+        [Header("Touch pad steering (one finger, bottom of the screen)")]
+        [Tooltip("Pad bottom edge above the safe-area bottom (fraction of safe-area height).")]
+        [SerializeField, Range(0f, 0.3f)] private float _padBottom = 0.03f;
+        [Tooltip("Pad height (fraction of safe-area height).")]
+        [SerializeField, Range(0.08f, 0.5f)] private float _padHeight = 0.24f;
+        [Tooltip("Left/right margin (fraction of safe-area width).")]
+        [SerializeField, Range(0f, 0.3f)] private float _padSideMargin = 0.05f;
+        [Tooltip("Drag distance from where the finger went down (fraction of screen height) for full input.")]
+        [SerializeField, Range(0.02f, 0.3f)] private float _padTravel = 0.09f;
+        [Tooltip("Bank input multiplier (drag left/right).")]
+        [SerializeField, Range(0.1f, 3f)] private float _bankSensitivity = 1f;
+        [Tooltip("Pitch input multiplier (drag up/down).")]
+        [SerializeField, Range(0.1f, 3f)] private float _pitchSensitivity = 1f;
+        [SerializeField, Range(0f, 0.5f)] private float _bankDeadZone = 0.06f;
+        [SerializeField, Range(0f, 0.5f)] private float _pitchDeadZone = 0.08f;
         [Tooltip("Response curve: 1 = linear, >1 = finer control near neutral.")]
-        [SerializeField, Range(1f, 3f)] private float _bankExpo = 1.15f;
-        [SerializeField, Range(1f, 3f)] private float _pitchExpo = 1.25f;
-        [Tooltip("Extra low-pass per axis (1/s). Higher = more responsive.")]
-        [SerializeField, Range(1f, 40f)] private float _bankSmoothing = 14f;
+        [SerializeField, Range(1f, 3f)] private float _bankExpo = 1.2f;
+        [SerializeField, Range(1f, 3f)] private float _pitchExpo = 1.3f;
+        [Tooltip("Extra low-pass per axis (1/s). Higher = more responsive. Also how fast controls ease back after release.")]
+        [SerializeField, Range(1f, 40f)] private float _bankSmoothing = 12f;
         [SerializeField, Range(1f, 40f)] private float _pitchSmoothing = 10f;
-        [Tooltip("Off: tilting the top edge away = nose down (yoke). On: away = nose up.")]
+        [Tooltip("Off: drag up = nose up (climb). On: drag up = nose down (flight-stick style).")]
         [SerializeField] private bool _invertPitch;
+
+        [Header("Menu backdrop")]
+        [Tooltip("Menu camera orbit around the room centre: half-size of the ellipse (m).")]
+        [SerializeField, Range(1f, 15f)] private float _menuOrbitRadiusX = 5f;
+        [SerializeField, Range(1f, 20f)] private float _menuOrbitRadiusZ = 7.5f;
+        [SerializeField, Range(0.5f, 6.5f)] private float _menuOrbitHeight = 3.2f;
+        [Tooltip("Degrees per second.")]
+        [SerializeField, Range(0f, 30f)] private float _menuOrbitSpeed = 4f;
+        [Tooltip("Decor plane's figure-eight loop: speed (m/s) along the path.")]
+        [SerializeField, Range(0.5f, 10f)] private float _menuFlyerSpeed = 3.5f;
 
         [Header("Chase camera")]
         [SerializeField, Range(0.3f, 6f)] private float _chaseDistance = 1.6f;
@@ -74,6 +93,10 @@ namespace Game
         public Vector3 CameraOffset => _cameraOffset;
         public float CameraFollowSharpness => _cameraFollowSharpness;
 
+        public float PadBottom => _padBottom;
+        public float PadHeight => _padHeight;
+        public float PadSideMargin => _padSideMargin;
+        public float PadTravel => _padTravel;
         public float BankSensitivity => _bankSensitivity;
         public float PitchSensitivity => _pitchSensitivity;
         public float BankDeadZone => _bankDeadZone;
@@ -83,6 +106,12 @@ namespace Game
         public float BankSmoothing => _bankSmoothing;
         public float PitchSmoothing => _pitchSmoothing;
         public bool InvertPitch => _invertPitch;
+
+        public float MenuOrbitRadiusX => _menuOrbitRadiusX;
+        public float MenuOrbitRadiusZ => _menuOrbitRadiusZ;
+        public float MenuOrbitHeight => _menuOrbitHeight;
+        public float MenuOrbitSpeed => _menuOrbitSpeed;
+        public float MenuFlyerSpeed => _menuFlyerSpeed;
 
         public float ChaseDistance => _chaseDistance;
         public float ChaseHeight => _chaseHeight;

@@ -1,8 +1,18 @@
 {
     "name": "Game.Editor",
     "rootNamespace": "Game.Editor",
-    "references": ["Template.Core", "Template.Services", "Template.UI", "Template.Flow", "Template.Game", "Template.Editor"],
-    "includePlatforms": ["Editor"],
+    "references": [
+        "Template.Core",
+        "Template.Services",
+        "Template.UI",
+        "Template.Flow",
+        "Template.Game",
+        "Template.Editor",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
     "autoReferenced": false,
     "noEngineReferences": false
 }
