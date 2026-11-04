@@ -4,30 +4,28 @@ using UnityEngine;
 namespace Game.Flight
 {
     /// <summary>
-    /// One-finger steering pad along the bottom of the screen (GameConfig "Touch pad steering").
-    /// A touch that starts inside the pad anchors there; dragging from the anchor steers: x → bank, y → pitch
-    /// (drag up = nose up unless InvertPitch). The finger may leave the pad while held. Releasing eases the
-    /// controls back to neutral. Per-axis dead zone, expo, sensitivity and smoothing.
+    /// One-finger steering anywhere on the screen (GameConfig "Touch steering"). A touch anchors where it goes
+    /// down; dragging from the anchor steers: x → bank, y → pitch (drag up = nose up unless InvertPitch).
+    /// Releasing eases the controls back to neutral. Touches that start in the top band (HUD buttons) are ignored.
+    /// Per-axis dead zone, expo, sensitivity and smoothing.
     /// </summary>
-    public sealed class PadSteering
+    public sealed class TouchSteering
     {
         private readonly GameConfig _config;
         private Vector2 _smoothed;
 
-        public PadSteering(GameConfig config) => _config = config;
+        public TouchSteering(GameConfig config) => _config = config;
 
         public bool Active { get; private set; }
         public Vector2 Anchor { get; private set; }
-        public Vector2 Finger { get; private set; }
-        /// <summary>Unshaped drag in [-1, 1] per axis (for the pad's knob).</summary>
+        /// <summary>Unshaped drag in [-1, 1] per axis.</summary>
         public Vector2 Drag { get; private set; }
 
-        /// <summary>The pad in screen pixels, inside the safe area.</summary>
-        public static Rect PadRect(GameConfig config, Rect safeArea)
+        /// <summary>True if a touch starting here belongs to gameplay (not the HUD band at the top of the safe area).</summary>
+        public static bool AcceptsTouch(GameConfig config, Vector2 screenPosition)
         {
-            var x = safeArea.x + safeArea.width * config.PadSideMargin;
-            var y = safeArea.y + safeArea.height * config.PadBottom;
-            return new Rect(x, y, safeArea.width * (1f - 2f * config.PadSideMargin), safeArea.height * config.PadHeight);
+            var safe = Screen.safeArea;
+            return safe.Contains(screenPosition) && screenPosition.y < safe.yMax - safe.height * config.TouchIgnoreTop;
         }
 
         public void Reset()
@@ -37,20 +35,19 @@ namespace Game.Flight
             _smoothed = Vector2.zero;
         }
 
-        /// <param name="pressStarted">The finger went down this frame (and may start a drag if inside the pad).</param>
+        /// <param name="pressStarted">The finger went down this frame (and may start a drag).</param>
         /// <param name="allowStart">False while something else owns new touches (e.g. the dev panel).</param>
         public FlightControls Update(bool pressed, bool pressStarted, Vector2 pointer, bool allowStart, float deltaTime)
         {
-            if (pressStarted && allowStart && PadRect(_config, Screen.safeArea).Contains(pointer))
+            if (pressStarted && allowStart && AcceptsTouch(_config, pointer))
             {
                 Active = true;
                 Anchor = pointer;
             }
             if (!pressed) Active = false;
 
-            Finger = pointer;
             Drag = Active
-                ? Vector2.ClampMagnitude((pointer - Anchor) / (Mathf.Max(1, Screen.height) * _config.PadTravel), 1f)
+                ? Vector2.ClampMagnitude((pointer - Anchor) / (Mathf.Max(1, Screen.height) * _config.DragTravel), 1f)
                 : Vector2.zero;
 
             var bank = Shape(Drag.x, _config.BankDeadZone, _config.BankExpo, _config.BankSensitivity);

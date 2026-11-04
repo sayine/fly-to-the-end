@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Game
 {
     /// <summary>
-    /// Gameplay tuning outside the flight model (CLAUDE.md rule 2): touch-pad steering, chase camera, run rules,
+    /// Gameplay tuning outside the flight model (CLAUDE.md rule 2): touch steering, chase camera, run rules,
     /// menu backdrop.
     /// The "placeholder game" sections still drive Demo_Tilt and the template Menu scene.
     /// </summary>
@@ -25,15 +25,11 @@ namespace Game
         [SerializeField] private Vector3 _cameraOffset = new Vector3(0f, 12f, -7f);
         [SerializeField, Min(0.1f)] private float _cameraFollowSharpness = 6f;
 
-        [Header("Touch pad (one finger, bottom of the screen): swipe up to throw, drag to steer")]
-        [Tooltip("Pad bottom edge above the safe-area bottom (fraction of safe-area height).")]
-        [SerializeField, Range(0f, 0.3f)] private float _padBottom = 0.03f;
-        [Tooltip("Pad height (fraction of safe-area height).")]
-        [SerializeField, Range(0.08f, 0.5f)] private float _padHeight = 0.24f;
-        [Tooltip("Left/right margin (fraction of safe-area width).")]
-        [SerializeField, Range(0f, 0.3f)] private float _padSideMargin = 0.05f;
+        [Header("Touch steering (one finger, anywhere): swipe up to throw, drag to steer")]
+        [Tooltip("Top band of the safe area (fraction of its height) left to HUD buttons: touches starting there are ignored.")]
+        [SerializeField, Range(0f, 0.4f)] private float _touchIgnoreTop = 0.14f;
         [Tooltip("Drag distance from where the finger went down (fraction of screen height) for full input.")]
-        [SerializeField, Range(0.02f, 0.3f)] private float _padTravel = 0.09f;
+        [SerializeField, Range(0.02f, 0.3f)] private float _dragTravel = 0.09f;
         [Tooltip("Bank input multiplier (drag left/right).")]
         [SerializeField, Range(0.1f, 3f)] private float _bankSensitivity = 1f;
         [Tooltip("Pitch input multiplier (drag up/down).")]
@@ -48,7 +44,7 @@ namespace Game
         [SerializeField, Range(1f, 40f)] private float _pitchSmoothing = 10f;
         [Tooltip("Off: drag up = nose up (climb). On: drag up = nose down (flight-stick style).")]
         [SerializeField] private bool _invertPitch;
-        [Tooltip("Show the throw hint again after this long on the shelf without touching the pad (s).")]
+        [Tooltip("Show the throw hint again after this long on the shelf without touching the screen (s).")]
         [SerializeField, Range(1f, 30f)] private float _idleHintDelay = 5f;
 
         [Header("Menu backdrop")]
@@ -95,10 +91,8 @@ namespace Game
         public Vector3 CameraOffset => _cameraOffset;
         public float CameraFollowSharpness => _cameraFollowSharpness;
 
-        public float PadBottom => _padBottom;
-        public float PadHeight => _padHeight;
-        public float PadSideMargin => _padSideMargin;
-        public float PadTravel => _padTravel;
+        public float TouchIgnoreTop => _touchIgnoreTop;
+        public float DragTravel => _dragTravel;
         public float IdleHintDelay => _idleHintDelay;
         public float BankSensitivity => _bankSensitivity;
         public float PitchSensitivity => _pitchSensitivity;

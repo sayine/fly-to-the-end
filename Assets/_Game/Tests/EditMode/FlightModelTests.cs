@@ -127,12 +127,12 @@ namespace Game.Tests
         }
 
         [Test]
-        public void PadShape_DeadZoneExpoSensitivity()
+        public void TouchShape_DeadZoneExpoSensitivity()
         {
-            Assert.AreEqual(0f, PadSteering.Shape(0.03f, 0.05f, 1.5f, 1f));
-            Assert.AreEqual(1f, PadSteering.Shape(1f, 0.05f, 1.5f, 1f), 1e-4f);
-            Assert.AreEqual(-1f, PadSteering.Shape(-2f, 0.05f, 1f, 3f), 1e-4f);
-            Assert.Less(PadSteering.Shape(0.5f, 0f, 2f, 1f), 0.5f, "expo > 1 softens the centre");
+            Assert.AreEqual(0f, TouchSteering.Shape(0.03f, 0.05f, 1.5f, 1f));
+            Assert.AreEqual(1f, TouchSteering.Shape(1f, 0.05f, 1.5f, 1f), 1e-4f);
+            Assert.AreEqual(-1f, TouchSteering.Shape(-2f, 0.05f, 1f, 3f), 1e-4f);
+            Assert.Less(TouchSteering.Shape(0.5f, 0f, 2f, 1f), 0.5f, "expo > 1 softens the centre");
         }
 
         [Test]

@@ -14,7 +14,7 @@ namespace Game.Editor
 {
     /// <summary>
     /// Generates the Paper Flight content: configs, materials, the paper-plane mesh + prefab, the Game scene
-    /// (room, Meshy props, wind, chase camera, steering pad, PaperPlaneGame, dev tuning panel) and the Menu scene.
+    /// (rooms, Meshy props, wind, chase camera, touch hint, PaperPlaneGame, dev tuning panel) and the Menu scene.
     /// Runs from Tools/Template/Generate (via [GameContentBuilder]) or Tools/Game/Build Paper Plane Scenes.
     /// Batchmode: -executeMethod Game.Editor.PaperPlaneContentBuilder.BuildBatch
     /// </summary>
@@ -42,9 +42,12 @@ namespace Game.Editor
         public static void BuildBatch() => Build(true);
 
         /// <summary>Called by Tools/Template/Generate. force=false keeps an existing Paper Plane Game scene.</summary>
+        private static bool _regenerateTextures;
+
         [GameContentBuilder]
         public static void Build(bool force)
         {
+            _regenerateTextures = force;
             EditorUtil.LoadOrCreate<FlightConfig>(FlightConfigPath);
             WindLayout.LoadOrCreateConfig();
             AssetDatabase.SaveAssets();
@@ -265,7 +268,7 @@ namespace Game.Editor
             EditorUtil.Set(game, "_chaseCamera", chase);
             EditorUtil.Set(game, "_camera", cam);
             EditorUtil.Set(game, "_aimArrow", arrow);
-            EditorUtil.Set(game, "_padView", BuildControlPad());
+            EditorUtil.Set(game, "_hintView", BuildTouchHint());
 
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);
@@ -346,7 +349,8 @@ namespace Game.Editor
         private static GameObject BuildEnvironment()
         {
             var room = new GameObject("Room").transform;
-            RoomLayout.BuildArchitecture(room, Mat("Room_Floor"), Mat("Room_Wall"), Mat("Room_Ceiling"));
+            RoomLayout.BuildArchitecture(room, RoomTextures.Ensure(_regenerateTextures));
+            _regenerateTextures = false; // once per build (Game and Menu share them)
             var pad = RoomLayout.BuildLaunchPad(room, Mat("LaunchPad"));
             RoomLayout.BuildFurniture(room, Mat("Prop_A"), Mat("Prop_B"), Mat("Prop_C"));
             PropModels.Apply(room);
@@ -359,10 +363,10 @@ namespace Game.Editor
             return pad;
         }
 
-        /// <summary>Screen-space throw/steer pad: rounded strip + first-time hint (no raycasts: never blocks HUD buttons).</summary>
-        private static ControlPadView BuildControlPad()
+        /// <summary>First-time ghost-finger hint over the lower screen (no raycasts: never blocks HUD buttons).</summary>
+        private static TouchHintView BuildTouchHint()
         {
-            var root = new GameObject("ControlPad", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var root = new GameObject("TouchHint", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
             var canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 5; // under the UIRoot (10)
@@ -374,41 +378,49 @@ namespace Game.Editor
             var rounded = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
             var circle = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
 
-            var pad = UiImage(root.transform, "Pad", rounded, new Color(1f, 1f, 1f, 0.16f), Vector2.zero);
-            pad.type = Image.Type.Sliced;
-            var group = pad.gameObject.AddComponent<CanvasGroup>();
-            group.blocksRaycasts = false;
-            group.interactable = false;
-            // Ghost finger + short label for first-time players (animated by ControlPadView).
-            var finger = UiImage(pad.transform, "HintFinger", circle, new Color(1f, 1f, 1f, 0.95f), new Vector2(110f, 110f));
+            // Invisible area in the lower screen that the ghost finger moves in.
+            var area = new GameObject("HintArea", typeof(RectTransform)).GetComponent<RectTransform>();
+            area.SetParent(root.transform, false);
+            area.anchorMin = new Vector2(0.1f, 0.12f);
+            area.anchorMax = new Vector2(0.9f, 0.3f);
+            area.offsetMin = area.offsetMax = Vector2.zero;
+
+            var finger = UiImage(area, "HintFinger", circle, new Color(1f, 1f, 1f, 0.95f), new Vector2(110f, 110f));
             var fingerGroup = finger.gameObject.AddComponent<CanvasGroup>();
             fingerGroup.blocksRaycasts = false;
             var halo = UiImage(finger.transform, "Halo", circle, new Color(1f, 1f, 1f, 0.3f), new Vector2(170f, 170f));
             halo.transform.SetAsFirstSibling();
-            var labelGo = new GameObject("HintLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
-            labelGo.transform.SetParent(pad.transform, false);
+
+            // Label on a soft dark pill under the swipe (keeps the plane on the shelf uncovered).
+            var pill = UiImage(area, "HintLabel", rounded, new Color(0f, 0f, 0f, 0.28f), Vector2.zero);
+            pill.type = Image.Type.Sliced;
+            var pillRt = pill.rectTransform;
+            pillRt.anchorMin = new Vector2(0.15f, 0f);
+            pillRt.anchorMax = new Vector2(0.85f, 0f);
+            pillRt.pivot = new Vector2(0.5f, 1f);
+            pillRt.anchoredPosition = new Vector2(0f, -40f);
+            pillRt.sizeDelta = new Vector2(0f, 96f);
+            var labelGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelGo.transform.SetParent(pill.transform, false);
             var label = labelGo.GetComponent<TextMeshProUGUI>();
             label.font = TMP_Settings.defaultFontAsset;
             label.fontSize = 54f;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
-            label.color = new Color(1f, 1f, 1f, 0.95f);
+            label.color = Color.white;
             label.raycastTarget = false;
             label.text = "Swipe up to throw";
             var labelRt = label.rectTransform;
-            labelRt.anchorMin = new Vector2(0f, 1f);
-            labelRt.anchorMax = new Vector2(1f, 1f);
-            labelRt.pivot = new Vector2(0.5f, 0f);
-            labelRt.anchoredPosition = new Vector2(0f, 24f); // just above the pad
-            labelRt.sizeDelta = new Vector2(0f, 80f);
+            labelRt.anchorMin = Vector2.zero;
+            labelRt.anchorMax = Vector2.one;
+            labelRt.offsetMin = labelRt.offsetMax = Vector2.zero;
 
-            var view = root.AddComponent<ControlPadView>();
-            EditorUtil.Set(view, "_canvas", canvas);
-            EditorUtil.Set(view, "_pad", pad.rectTransform);
-            EditorUtil.Set(view, "_group", group);
+            var view = root.AddComponent<TouchHintView>();
+            EditorUtil.Set(view, "_area", area);
             EditorUtil.Set(view, "_finger", finger.rectTransform);
             EditorUtil.Set(view, "_fingerGroup", fingerGroup);
             EditorUtil.Set(view, "_label", label);
+            EditorUtil.Set(view, "_labelRoot", pill.gameObject);
             return view;
         }
 
