@@ -1,155 +1,173 @@
-# Game: Paper Flight (working title — rename after CPI test)
+# Game: Paper Flight (hybrid casual)
 
-Copy this file to `Docs/SPEC.md` in the template project before starting.
+The game started as a one-mechanic hypercasual prototype (see git history for the original spec) and is now
+moving to **hybrid casual**: the same flight core, plus a house to explore, a level list with missions, stars, and a
+collection of 20 planes to unlock. Monetization stays **ads only** (no IAP, no currencies to buy).
 
 ## Core mechanic (1 sentence)
-The player flicks a paper plane across a big 3D room, then steers it with phone tilt, riding fan wind and warm updrafts to stay in the air as long as possible.
+Throw a paper plane with one swipe, then steer it with one finger through a big house, riding fans and warm air to
+complete each level's mission.
 
-## Why this works as hypercasual
-- Instantly readable from a 15 s video: flick → glide → near miss with a fan → crash or long save.
-- Two simple inputs in sequence (flick, then tilt). No buttons, no UI during flight.
-- Every run is short (10-40 s) with a clear "one more try, I can beat that time" loop.
-- Score is a single number: seconds airborne.
+## Controls (built, keep)
+- **Throw:** swipe up anywhere on the screen (swipe speed → throw speed, swipe direction → aim, clamped to a forward cone).
+- **Steer:** put a finger down anywhere and drag from that point: left/right = bank, up/down = pitch (drag up = nose up).
+  Releasing eases back to level flight. The top 14% of the screen is left to HUD buttons.
+- First-time ghost-finger hint ("Swipe up to throw", then "Drag to steer"), shown until the player has steered.
 
-## Controls
-**Phase 1 — Launch (flick)**
-- Player touches near the plane, drags and releases. Swipe vector sets launch:
-  - Swipe speed → launch speed (clamped between `MinLaunchSpeed` and `MaxLaunchSpeed`).
-  - Swipe direction (up/down/left/right on screen) → launch pitch and yaw (clamped to a forward cone so the plane never launches backwards into the camera).
-- Show a faint predicted-direction arrow while dragging (no full trajectory, keep it skill-based).
-- Very weak swipes launch at `MinLaunchSpeed` so a tap never produces a dead run.
+## Flight model (built, keep)
+Arcade paper-plane model (`FlightConfig`): lift/drag with a capped lift, weathervane AoA, bank-to-turn, stall with
+recovery, plus arcade assists (cruise push, slow neutral sink) so an untouched glide lasts ~40-60 s and runs end on a
+crash, not on the floor. **Each plane scales these values** (see Planes).
 
-**Phase 2 — Flight (tilt)**
-- Tilt left/right (gravity X) = bank. Banking turns the plane (yaw rate proportional to bank angle).
-- Tilt forward/back (gravity Y/Z relative to calibration) = pitch. Nose down trades altitude for speed; nose up trades speed for lift and climb, until stall.
-- Calibration: the phone's orientation at launch release = neutral. Recalibrate every run.
-- Smoothing, dead zone and sensitivity (separately for bank and pitch) in `GameConfig`.
-- Editor fallback: arrow keys / WASD and mouse drag for the flick.
-- Portrait orientation locked.
+## Wind (built, keep)
+Wind zones never crash the plane; they push it (fans sideways, thermals up, AC vents down) and are shown with
+flowing ribbons, dust motes and floor rings. Strengths in `WindConfig`, per-zone scale for gentle helper fans.
 
-## Flight model (arcade, NOT realistic aerodynamics)
-Use a Rigidbody with custom forces applied in `FixedUpdate`. Keep it simple, readable and tunable:
-- `Gravity` scaled down (e.g. 0.5x) so flights last long enough to be fun.
-- `Lift = LiftCoef * speed² * f(angleOfAttack)`; `f` is a curve in config, peaks around a small positive AoA, drops sharply past `StallAngle`.
-- `Drag = DragCoef * speed²` (+ extra induced drag when pitching up hard).
-- Forward vector slowly aligns with velocity (weathervane effect) so the plane feels stable and "paper-like".
-- Banking produces yaw turn: `yawRate = BankAngle * TurnRate`.
-- **Stall**: speed below `StallSpeed` or AoA above `StallAngle` → nose drops, lift collapses, plane tumbles gently. Recoverable by pitching down to regain speed.
-- Optional flutter: small noise on rotation scaled by turbulence level.
-- Starting glide ratio ≈ 8-12:1 in still air. Without wind help, a run should last about 4-8 s; wind and thermals extend it. **The skill is reading the room and riding the air.**
-- All constants in `FlightConfig` ScriptableObject, with live-tuning debug panel (dev builds only).
+---
 
-## Room and wind (the heart of the game)
-- One large 3D room (living room / loft). Room feels huge relative to the plane (plane ≈ 0.25 m, room ≈ 20 m × 14 m × 5 m). Tune scale until flights feel long.
-- Furniture and small/large props: sofa, table, bookshelf, lamp, plant, boxes, balls, books, hanging mobile. Low-poly, flat colors. All props are static colliders (only the ceiling-fan blades and mobile move).
-- **Wind volumes** (custom trigger colliders; do NOT use Unity's `WindZone`, it only affects trees/particles):
-  - **Floor/oscillating fan**: directional cone of wind, strength falls off with distance, optional left-right sweeping.
-  - **Ceiling fan**: strong downdraft below, weak updraft around its rim. Rotating blades are a crash hazard.
-  - **Heater / radiator / sunny window spot**: vertical updraft column (thermal) → free altitude.
-  - **AC vent**: downdraft zone, a hazard.
-  - **Open window gust**: periodic gust, timed.
-- Wind force = `direction * strength * falloff(distance) * (1 + turbulence * noise(time, position))`.
-- Turbulence uses Perlin noise sampled on position and time; stronger near fan edges.
-- **Readability**: wind must be visible. Use soft particle streaks / dust motes in each wind volume, rotating blades, a visible heat shimmer or sparkles above thermals. If a player can't see the wind, the game fails.
-- **Layouts**: 3 room layouts (different fan/thermal/prop positions) rotated by run number. Each run also randomizes fan on/off timing and sweep phase within layout rules, seeded and logged.
-- **Crash**: any contact with a collider (floor, furniture, wall, fan blade) ends the run. Short settle (0.6 s) then Game Over. Walls/ceiling contact counts as crash.
+## 1. The house (one connected map)
+One big single-floor house, built by the scene generator. Furniture is generated at real size × 1.6 so the 25 cm
+plane feels like a toy. Ceilings 6 m, hallways 6 m wide, 5 m tall, doorways 5 m wide.
 
-## Score and goals
-- Score = seconds airborne (one decimal). Secondary stat shown on Game Over: distance flown.
-- Best time saved locally.
-- Milestone toasts at 10 s, 20 s, 30 s, 45 s, 60 s (visual only, no rewards).
-- No gems, coins or extra currencies.
+```
+ z ↑ (north)
+        ┌────────────┬────────────┐
+        │ Bedroom 1  │ Bedroom 2  │   bed, wardrobe, desk / bunk bed, toy shelf
+        └─────┬──────┴──────┬─────┘
+ ┌────────────┤             ├────────────┐
+ │  Kitchen   ═   Hallway   ═   Study    │   counters, island, fridge / desk, bookcases, globe
+ └────────────┤   (spine)   ├────────────┘
+        ┌─────┴─────────────┴─────┐
+        │       Living room       │   launch hub: sofa, TV, shelves (exists)
+        └─────────────────────────┘
+```
 
-## Difficulty / progression
-- No levels. Difficulty comes from layout rotation and wind randomization.
-- Layout 1 (easy, run 1-3): one fan, one big thermal, few props, forgiving.
-- Layout 2: ceiling fan + AC downdraft + more props.
-- Layout 3: oscillating fan + timed window gust + dense clutter.
-- After run 3, rotate layouts in order; occasionally (weighted) reuse the easy layout so players can post a high score.
-- First run is assisted: slightly more lift, and a one-time hint animation (ghost finger flick, then tilt icon). No text-heavy tutorial.
+| Room | Size (W × D m) | Wind | Typical missions |
+|---|---|---|---|
+| Living room | 26 × 24 | floor fan, radiator thermal, AC vent | tutorial levels, airtime, gems |
+| Hallway (spine) | 6 × 40 | helper fans | reach-a-room, rings |
+| Kitchen | 20 × 22 | extractor hood updraft, oven thermal, fridge cold downdraft | land on table/counter, gems |
+| Bedroom 1 | 18 × 18 | ceiling fan, window gust | land on bed, narrow passages |
+| Bedroom 2 | 16 × 18 | desk fan, radiator | rings through toy shelves, gems |
+| Study | 16 × 18 | desk fan, lamp thermal | narrow gaps between bookcases, land on desk |
 
-## Session length target
-- Average run 15-30 s, median 4-6 runs in the first session.
+Each level chooses a **start point** (a shelf, counter, desk or bed in some room) and spawns its own mission items,
+so new levels need no new geometry.
 
-## Feel / juice (must-have, Day 2)
-- Paper plane model with slightly flexing wings (cheap vertex or bone wobble), subtle trail.
-- Camera: chase cam behind and above, smoothed, with FOV rising with speed, gentle roll with banking; cinematic slow orbit at the moment of launch.
-- **Depth cue**: soft blob shadow projected on the floor/props under the plane + a small altitude indicator line. Essential for judging height.
-- Wind-ride feedback: sparkles and a whoosh when entering a thermal, light haptic pulses.
-- Crash: 0.3 s slow-mo, paper crumple SFX, light haptic. Plane tumbles realistically (let physics play it out).
-- Small props react softly if hit (optional, only if cheap): nudge, no gameplay effect.
-- Music: calm lo-fi loop. SFX: whoosh scaling with speed, fan hum (3D audio, louder near fans, which also helps readability), crash, UI.
+## 2. Levels and missions
+- A level is a `LevelConfig` asset: id, room, start point, mission type + parameters, star thresholds, the mission
+  items to place, optional wind changes (fans on/off, strength), and a time limit where relevant.
+- Levels unlock in order. Each completed level awards **1-3 stars** (best result is kept). Failing (crash before the
+  goal, or time out) offers Retry and the rewarded "Second chance".
+- **Mission types** (first set):
 
-## Art style
-- Flat/low-poly cozy room, warm light, no textures, URP Simple Lit with baked/fake lighting. No realtime shadows except the blob shadow for the plane.
-- Pastel palette per layout (e.g. morning, sunset, night with lamp glow).
-- Strong contrast between the plane (bright white/colored) and the background.
+| Mission | Goal | Stars |
+|---|---|---|
+| Airtime | Stay in the air N seconds | N, 1.5N, 2N seconds |
+| Land on target | Touch down softly on a target (table, bed, counter, desk) | landed; landed slow; landed in the bullseye |
+| Collect gems | Fly through gems placed along a route | 50%, 80%, 100% of the gems |
+| Rings / narrow passage | Fly through rings or gaps in order (tight spaces between furniture) | all rings; under time A; under time B |
+| Reach a room | Fly from the start room into a target room | reached; reached with ≥ X s airtime; reached under time T |
 
-## Ad placements (AdMob, values in `AdConfig`)
-- **Interstitial**: on Retry tap after Game Over, only if cooldown allows (≥45 s since last, not before session 2 or 90 s of total play).
-- **Rewarded "Boost launch"**: before launching, optional button gives +20% launch speed and a short starting updraft for that run. Offered on Game Over → Retry screen.
-- **Rewarded "Second chance"**: once per run, on Game Over, respawns the plane at the crash altitude/position (or last safe point) with an upward gust and 2 s invulnerability. Button hidden if no ad loaded.
-- No banner.
-- Preload the next ad right after one is shown.
-- Ad SDK code stays behind `IAdService`.
+- **Landing rule:** touching the target surface with speed < `LandSpeed` and a gentle descent angle counts as a
+  landing (success); anything else is a crash.
+- Launch content: **30 levels** (about 5 per room), ramping in difficulty and introducing one mission type at a time.
+- **Free Flight** (the original endless mode) stays as a separate mode with its best-time record.
 
-### AdMob notes (differs from the template default)
-- Template defaults to AppLovin MAX behind `IAdService`. Add a new `AdMobAdService : IAdService` using the official Google Mobile Ads Unity plugin (verify the current install method in Google's docs) and select it via `AdConfig`/bootstrapper. Keep the mock implementation for Editor.
-- Consent: use Google's UMP SDK (included with Google Mobile Ads in Unity) + iOS ATT before ad requests.
-- Use Google test ad unit IDs and registered test devices during development; never click your own live ads.
-- Ad unit IDs in the git-ignored `Secrets.asset`.
-- Publish `app-ads.txt`. Not child-directed; set the correct content rating and tag-for-child-treatment settings.
+## 3. Planes (20 at launch)
+Each plane is a `PlaneConfig` asset: name, look (fold shape + colors/pattern), stats, unlock rule. Stats are shown as
+1-5 bars in the hangar and map to multipliers on `FlightConfig`:
 
-## Analytics events
-`session_start`, `run_start` (layout id, seed), `launch` (speed, pitch, yaw), `run_end` (duration, distance, crash_cause, layout id, seed), `thermal_entered`, `rewarded_offered`, `rewarded_completed` (type), `interstitial_shown`, `settings_changed`. Goals: D1 ≥ 35-40%, runs per session, ads per session.
+| Stat | What it changes |
+|---|---|
+| **Speed** | cruise speed and throw speed |
+| **Agility** | turn rate and bank/pitch response |
+| **Glide** | neutral sink rate (flight duration) |
+| **Lift** | climb authority before stalling |
+| **Stability** | flutter and how hard wind pushes it (heavier feel) |
 
-## UI screens
-- Menu: title, best time, big "Tap to Play" (plays a short room fly-through), settings (sound, haptics, tilt sensitivity).
-- Pre-launch HUD: plane on a launch pad/desk, ghost-finger hint (first runs only), optional "Boost (ad)" button.
-- In-flight HUD: only the timer (top center). Nothing else.
-- Game Over: time, best, distance, "Second chance (ad)", "Retry" (largest), Menu.
-- Safe-area aware, portrait only.
+Look: procedural paper planes (different fold shapes: dart, glider, wide wing, delta, stunt, swallow…) with colors
+and printed patterns; RC planes and drones are a later expansion (out of scope for now).
 
-## Out of scope (explicitly, do NOT build)
-- IAP, ad removal, shop/skins/paper types, leaderboards, achievements, accounts, multiplayer.
-- Full aerodynamic simulation, soft-body paper deformation, destructible props.
-- Multiple rooms beyond the 3 layouts, story, missions, collectibles.
-- Localization beyond English UI.
-- Complex tutorial text.
+| # | Plane | Shape | Speed | Agility | Glide | Lift | Stability | Unlock |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Classic Dart | dart | 3 | 3 | 3 | 3 | 3 | start |
+| 2 | Classic Dart (Sky) | dart, blue | 3 | 3 | 3 | 3 | 3 | start |
+| 3 | Notebook Glider | glider, lined paper | 2 | 3 | 4 | 3 | 3 | 5 stars |
+| 4 | Swallow | swallow | 3 | 4 | 3 | 3 | 2 | complete level 5 |
+| 5 | Sticky Note | small square wing, yellow | 2 | 5 | 2 | 3 | 2 | 12 stars |
+| 6 | Newspaper Bomber | wide wing, newsprint | 2 | 2 | 4 | 3 | 5 | complete level 10 |
+| 7 | Origami Crane Jet | delta, red | 4 | 3 | 2 | 3 | 3 | 20 stars |
+| 8 | Weekly Streak | dart, gold | 3 | 4 | 4 | 3 | 3 | check-in day 7 |
+| 9 | Map Glider | glider, map print | 3 | 3 | 4 | 4 | 3 | 30 stars |
+| 10 | Stunt Flyer | stunt | 3 | 5 | 2 | 4 | 2 | complete level 15 |
+| 11 | Kite Wing | wide wing, striped | 2 | 3 | 5 | 4 | 3 | 40 stars |
+| 12 | Banknote | slim dart, green | 5 | 3 | 2 | 2 | 3 | complete level 20 |
+| 13 | Fortnight Flyer | delta, silver | 4 | 4 | 3 | 4 | 3 | check-in day 14 |
+| 14 | Comic Strip | swallow, comic print | 3 | 4 | 3 | 4 | 4 | 50 stars |
+| 15 | Blueprint | delta, blueprint | 4 | 4 | 3 | 3 | 4 | complete level 25 |
+| 16 | Night Owl | glider, dark blue | 3 | 3 | 5 | 4 | 3 | 60 stars |
+| 17 | Tissue Floater | wide wing, white | 1 | 3 | 5 | 5 | 1 | 70 stars |
+| 18 | Cardboard Tank | wide dart, brown | 2 | 2 | 3 | 2 | 5 | complete level 30 |
+| 19 | Rainbow | stunt, rainbow | 4 | 5 | 4 | 4 | 3 | 80 stars |
+| 20 | Golden Jet | delta, gold | 5 | 5 | 4 | 4 | 4 | 90 stars (all levels, 3 stars each) |
+
+Numbers are a first pass, to tune after play-testing; 30 levels × 3 stars = 90 stars max.
+
+## 4. Meta and retention
+- **Stars:** total stars unlock planes (table above). Shown on the level map and in the hangar.
+- **Daily check-in:** counts **total days the game was opened** (missed days don't reset). Day 7 and day 14 award
+  planes; other days show the progress bar toward the next reward. Uses local date; no server.
+- **Hangar:** pick a plane, see its stats, see how to unlock locked ones. **Rewarded "Try it"**: fly a locked plane for
+  one level.
+- **Notifications** (later, optional): "Your daily check-in is ready".
+
+## 5. Ads (AdMob, values in `AdConfig`)
+- **Interstitial:** between levels (on Next/Retry), never during flight, ≥ 45 s cooldown, not before session 2 or 90 s.
+- **Rewarded "Second chance":** once per level attempt after a crash: respawn at the last safe point with 2 s invulnerability.
+- **Rewarded "Try it":** fly a locked plane for one level (hangar and level start).
+- **Rewarded "Boost throw"** (Free Flight): +20% throw speed for one run.
+- No banner. Ad code stays behind `IAdService`; graceful fallback if no ad is loaded (button hidden).
+
+## 6. Save data (`ISaveService`, game key)
+Per-level best stars and best time; total stars; unlocked planes; selected plane; check-in day count and last check-in
+date; Free Flight best time; tutorial seen; settings.
+
+## 7. Analytics events
+`session_start`, `level_start` (level, room, mission, plane), `level_end` (level, result, stars, duration, crash_cause),
+`plane_unlocked` (plane, source), `plane_selected`, `checkin` (day), `rewarded_offered` / `rewarded_completed` (type),
+`interstitial_shown`, `tutorial_complete`, `free_flight_end` (duration).
+
+## 8. UI screens
+Menu (backdrop: house fly-through, Play / Free Flight / Hangar, check-in badge) · Level map (rooms as sections, stars
+per level, locked levels) · Level intro (mission text + icon, star goals, plane, "Try it") · In-flight HUD (mission
+progress only: timer / gems / rings) · Level complete (stars, Next, Retry) · Level failed (Second chance, Retry) ·
+Hangar (plane grid, stats bars, unlock conditions) · Daily check-in popup · Settings.
+
+## Out of scope (for now)
+IAP, coins/shop, leaderboards, accounts, multiplayer, RC planes and drones (later expansion), multiple floors,
+procedural level generation, localization beyond English.
 
 ## Technical notes
-- Fixed timestep at 50 Hz; Rigidbody with continuous collision detection on the plane; all forces in `FixedUpdate`.
-- Wind volumes as pooled/precomputed data (center, shape, direction, strength, falloff); sample wind once per physics step, no per-frame allocations.
-- Plane collider: simple capsule/box, slightly forgiving. Props use simple primitive colliders only (no mesh colliders on furniture).
-- Keep draw calls low: static batching for room, GPU instancing for props, baked lightmaps or flat unlit-ish look.
-- Target 60 FPS on a mid-range Android device.
-- Determinism isn't required, but log seed + launch parameters so odd runs can be reproduced.
-- Dev-only debug panel: sliders for lift, drag, gravity scale, wind strength, tilt sensitivity; save/load presets to `FlightConfig`.
+- Content is generated by Editor scripts (house, wind, mission items, configs) — no hand wiring (CLAUDE.md rule 1).
+- `LevelConfig`, `PlaneConfig`, `MissionConfig` ScriptableObjects in `Assets/_Game/Configs`; a `LevelCatalog` and
+  `PlaneCatalog` list them.
+- One Game scene with the whole house; the level controller places start point, mission items and wind settings.
+  Static batching for the house; mission items pooled.
+- 60 FPS on the oldest supported iPhone; the bigger house must keep draw calls low (static batching, shared
+  materials, LOD-free low-poly Meshy models).
 
-## Acceptance criteria (Definition of Done)
-- [ ] Flick launch feels fair: any reasonable swipe produces a flight; strong swipes feel faster, not broken.
-- [ ] Tilt steering feels responsive, calibrates at any holding angle, no gimbal/jitter issues.
-- [ ] A skilled player can reach 30 s+ on layout 1; a first-time player reaches 5-10 s.
-- [ ] All wind types are visibly telegraphed and clearly affect the plane.
-- [ ] Depth cue (shadow/altitude line) makes height judgeable.
-- [ ] 60 FPS steady, no GC spikes during a 5-minute session (Profiler check).
-- [ ] AdMob test ads: interstitial cooldown, both rewarded flows, graceful no-fill.
-- [ ] Consent flow completes before the first ad request.
-- [ ] Analytics events fire correctly.
-- [ ] Works with sound off and haptics off.
-- [ ] Release checklist (`Docs/CHECKLIST.md`) complete.
+## Roadmap (phases; each ends compiling, tested, committed)
+1. **House:** bigger living room, kitchen, 2 bedrooms, study, hallway spine; room wind; Meshy furniture for the new
+   rooms (~25 models, ~375 credits); chase camera across all rooms.
+2. **Levels:** `LevelConfig`, level controller, the 5 mission types, landing detection, gems and rings, stars, save,
+   level map + intro + complete/failed screens, first 10 levels.
+3. **Planes:** `PlaneConfig` + stat multipliers, 20 procedural paper planes, hangar, unlock rules, daily check-in,
+   rewarded "Try it".
+4. **Content and polish:** levels 11-30, Free Flight mode wiring, ads + analytics events, tuning on device.
 
-## 4-day plan (physics tuning is the risk, timebox it)
-- **Day 1**: Room greybox, plane Rigidbody with flight model + flick launch + tilt steering + chase camera + crash detection + timer. Debug tuning panel. Goal: feels like gliding paper.
-- **Day 2**: Wind volumes (floor fan, thermal, ceiling fan, AC), wind VFX, blob shadow, props/layout 1, juice (trail, SFX, haptics, slow-mo), menu/HUD/Game Over.
-- **Day 3**: Layouts 2-3, first-run assist and hint, AdMob + consent + analytics + save, device build, perf pass.
-- **Day 4**: Tuning on real devices, icon, store screenshots, 15-20 s CPI video, final build, soft launch / CPI test.
-- **Timebox rule**: if flight feel is not fun by end of Day 2, cut scope (drop ceiling fan blades and gust) and simplify the model rather than extending the schedule. If still not fun, shelve the game.
-
-## CPI test notes
-- Creative: first 3 s = flick launch, then a near miss with a fan and a thermal lift, ending on a long-time score pop-up ("37.2 s").
-- Variants: different room palette / plane color; also test one variant showing only the dramatic crash slow-mo.
-- Decision rule: if CPI is above your threshold after a few hundred impressions, shelve and move to the next prototype.
-
-## Prompt to start development (paste into Claude Code after the template exists)
-> Read `CLAUDE.md` and `Docs/SPEC.md`. Implement the game described in the spec on top of the template, following the 4-day plan. Start with Day 1 only: one greybox room, a paper plane Rigidbody with the arcade flight model from the spec (configurable via `FlightConfig`), flick-to-launch input, tilt steering via `IPlayerInput` with per-run calibration, chase camera, crash detection, and the airborne timer. Include a dev-only live tuning panel. Use Editor scripts to generate the scene and prefabs. Keep everything compiling, and stop at the end of Day 1 with a list of what to test on a real device and which `FlightConfig` values matter most for the feel.
+## Acceptance criteria (per phase)
+- Compiles with zero errors; EditMode + PlayMode tests pass; Boot scene plays in the Editor.
+- Phase 2: every mission type has a PlayMode test that completes and fails it.
+- Phase 3: unlock rules unit-tested (stars, level, check-in day counting across date changes).
+- 60 FPS steady and no GC spikes during a 5-minute session (Profiler on device).
