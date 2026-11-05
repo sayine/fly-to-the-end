@@ -1,4 +1,5 @@
 using Game.Levels;
+using Game.Planes;
 using Game.UI;
 using Template.Editor;
 using Template.UI.Screens;
@@ -18,12 +19,13 @@ namespace Game.Editor
     {
         private const string ScreensFolder = UIBuilder.ScreensFolder;
 
-        public static void Build(LevelCatalog catalog)
+        public static void Build(LevelCatalog catalog, PlaneCatalog planes)
         {
             UIBuilder.BuildAll(false); // make sure template screens (incl. LevelComplete) exist in UIRoot
             var map = UIBuilder.Screen<LevelMapScreen>(true, (s, c) => BuildLevelMap(s, c, catalog));
             UIBuilder.EnsureInRoot(map);
-            PatchMenu(catalog);
+            PlaneUiBuilder.Build(planes, catalog);
+            PatchMenu(catalog, planes);
             Patch<GameOverScreen>($"{ScreensFolder}/GameOverScreen.prefab", root =>
                 root.transform.Find("Content/Title").GetComponent<TMP_Text>().text = "CRASHED!");
             Patch<LevelCompleteScreen>($"{ScreensFolder}/LevelCompleteScreen.prefab", root =>
@@ -94,13 +96,13 @@ namespace Game.Editor
         }
 
         // ---------- Menu ----------
-        private static void PatchMenu(LevelCatalog catalog)
+        private static void PatchMenu(LevelCatalog catalog, PlaneCatalog planes)
         {
             Patch<MenuScreen>($"{ScreensFolder}/MenuScreen.prefab", root =>
             {
                 var content = root.transform.Find("Content");
                 // Rebuild our additions each time (idempotent).
-                foreach (var n in new[] { "LevelLabel", "LevelsButton", "FreeFlightButton" })
+                foreach (var n in new[] { "LevelLabel", "LevelsButton", "HangarButton", "FreeFlightButton" })
                 {
                     var old = content.Find(n);
                     if (old != null) Object.DestroyImmediate(old.gameObject);
@@ -109,18 +111,24 @@ namespace Game.Editor
                 if (existing != null) Object.DestroyImmediate(existing);
 
                 var label = UIBuilder.Text(content, "LevelLabel", "LEVEL 1", 64, new Vector2(0.5f, 0.395f), new Vector2(700, 100), UIBuilder.Accent);
-                var levels = UIBuilder.Button(content, "LevelsButton", "LEVELS", new Vector2(0.29f, 0.17f), new Vector2(430, 130), UIBuilder.Secondary, 52, out _);
-                var free = UIBuilder.Button(content, "FreeFlightButton", "FREE FLIGHT", new Vector2(0.71f, 0.17f), new Vector2(430, 130), UIBuilder.Secondary, 48, out _);
+                var levels = UIBuilder.Button(content, "LevelsButton", "LEVELS", new Vector2(0.29f, 0.19f), new Vector2(430, 120), UIBuilder.Secondary, 52, out _);
+                var hangar = UIBuilder.Button(content, "HangarButton", "HANGAR", new Vector2(0.71f, 0.19f), new Vector2(430, 120), UIBuilder.Secondary, 52, out _);
+                var badge = PlaneUiBuilder.NewBadge(hangar.transform);
+                badge.SetActive(false);
+                var free = UIBuilder.Button(content, "FreeFlightButton", "FREE FLIGHT", new Vector2(0.29f, 0.11f), new Vector2(430, 110), UIBuilder.Secondary, 46, out _);
                 var settings = (RectTransform)content.Find("SettingsButton");
-                settings.anchorMin = settings.anchorMax = new Vector2(0.5f, 0.065f);
-                settings.sizeDelta = new Vector2(380, 100);
-                settings.Find("Label").GetComponent<TMP_Text>().fontSize = 40;
+                settings.anchorMin = settings.anchorMax = new Vector2(0.71f, 0.11f);
+                settings.sizeDelta = new Vector2(430, 110);
+                settings.Find("Label").GetComponent<TMP_Text>().fontSize = 46;
 
                 var extras = root.AddComponent<MenuExtras>();
                 var so = new SerializedObject(extras);
                 so.FindProperty("_catalog").objectReferenceValue = catalog;
                 so.FindProperty("_levelLabel").objectReferenceValue = label;
                 so.FindProperty("_levelsButton").objectReferenceValue = levels;
+                so.FindProperty("_planes").objectReferenceValue = planes;
+                so.FindProperty("_hangarButton").objectReferenceValue = hangar;
+                so.FindProperty("_hangarBadge").objectReferenceValue = badge;
                 so.FindProperty("_freeFlightButton").objectReferenceValue = free;
                 so.ApplyModifiedPropertiesWithoutUndo();
 

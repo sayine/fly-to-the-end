@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e596747e60aea46ac91a24790abd9e9f, type: 3}
+  m_Name: weekly_streak
+  m_EditorClassIdentifier: 
+  _id: weekly_streak
+  _displayName: Weekly Streak
+  _shape: 0
+  _pattern: 9
+  _primary: {r: 0.9607843, g: 0.77254903, b: 0.25882354, a: 1}
+  _secondary: {r: 0.7882353, g: 0.5882353, b: 0.16862746, a: 1}
+  _stats:
+    Speed: 3
+    Agility: 4
+    Glide: 4
+    Lift: 3
+    Stability: 3
+  _unlock:
+    Kind: 3
+    Value: 7
+  _mesh: {fileID: 4300000, guid: a5c3ae4420f074a5eac2ee9dd2bebc55, type: 2}
+  _material: {fileID: 2100000, guid: a7259d35c92e74a4da93427f97001cd2, type: 2}
+  _thumbnail: {fileID: 21300000, guid: 9b782e32b2b98456899084c6f7c0da23, type: 3}

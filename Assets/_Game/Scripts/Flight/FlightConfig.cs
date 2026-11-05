@@ -78,6 +78,8 @@ namespace Game.Flight
         [Tooltip("Perlin noise on AoA/bank (deg) in still air. Wind turbulence adds to it later.")]
         [SerializeField, Range(0f, 5f)] private float _flutterAmplitude = 0.6f;
         [SerializeField, Range(0.1f, 10f)] private float _flutterFrequency = 2.5f;
+        [Tooltip("Multiplier on wind pushes (planes with high Stability get less).")]
+        [SerializeField, Range(0f, 2f)] private float _windResponse = 1f;
 
         [Header("Landing (Land missions)")]
         [Tooltip("Touching a landing target sinking slower than this (m/s) is a landing, faster is a crash.")]
@@ -143,6 +145,7 @@ namespace Game.Flight
         public float StallWobble => _stallWobble;
         public float FlutterAmplitude => _flutterAmplitude;
         public float FlutterFrequency => _flutterFrequency;
+        public float WindResponse => _windResponse;
         public float LandMaxVerticalSpeed => _landMaxVerticalSpeed;
         public float LandMaxSpeed => _landMaxSpeed;
         public float LandMinNormalY => _landMinNormalY;
@@ -160,6 +163,43 @@ namespace Game.Flight
         public float AimScreenDistance => _aimScreenDistance;
         public float AimDepth => _aimDepth;
         public float LaunchGraceTime => _launchGraceTime;
+
+        /// <summary>
+        /// A runtime copy of this config scaled by a plane's stats (SPEC §3). The asset itself is never changed, so
+        /// live tuning of the base config keeps working; call once per run (allocates one ScriptableObject).
+        /// </summary>
+        public FlightConfig CreateVariant(Game.Planes.PlaneStats stats, Game.Planes.PlaneStatScaling k)
+        {
+            var v = Instantiate(this);
+            v.name = name + " (plane)";
+            if (k == null) return v;
+            var speed = Game.Planes.PlaneStatScaling.Normalize(stats.Speed);
+            var agility = Game.Planes.PlaneStatScaling.Normalize(stats.Agility);
+            var glide = Game.Planes.PlaneStatScaling.Normalize(stats.Glide);
+            var lift = Game.Planes.PlaneStatScaling.Normalize(stats.Lift);
+            var stability = Game.Planes.PlaneStatScaling.Normalize(stats.Stability);
+
+            var cruise = 1f + k.CruiseSpeed * speed;
+            v._cruiseSpeed *= cruise;
+            v._liftCoef /= cruise * cruise; // lift ∝ v²: keep level flight level at the new cruise speed
+            v._minLaunchSpeed *= 1f + k.LaunchSpeed * speed;
+            v._maxLaunchSpeed *= 1f + k.LaunchSpeed * speed;
+
+            var turn = 1f + k.Turn * agility;
+            v._turnRate *= turn;
+            v._bankResponse *= turn;
+            v._pitchResponse *= turn;
+            v._maxBankAngle = Mathf.Clamp(v._maxBankAngle + k.MaxBank * agility, 5f, 80f);
+
+            v._neutralSinkRate *= Mathf.Max(0.05f, 1f - k.Sink * glide);
+
+            v._pitchUpAuthority *= 1f + k.PitchUp * lift;
+            v._stallSpeed *= Mathf.Max(0.1f, 1f - k.StallSpeed * lift);
+
+            v._windResponse *= Mathf.Max(0.1f, 1f - k.Wind * stability);
+            v._flutterAmplitude *= Mathf.Max(0f, 1f - k.Flutter * stability);
+            return v;
+        }
 
         /// <summary>Piecewise-linear default (no overshoot around the stall peak).</summary>
         public static AnimationCurve DefaultLiftCurve()

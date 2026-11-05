@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e596747e60aea46ac91a24790abd9e9f, type: 3}
+  m_Name: rainbow
+  m_EditorClassIdentifier: 
+  _id: rainbow
+  _displayName: Rainbow
+  _shape: 6
+  _pattern: 8
+  _primary: {r: 1, g: 0.41960785, b: 0.41960785, a: 1}
+  _secondary: {r: 0.41960785, g: 0.77254903, b: 1, a: 1}
+  _stats:
+    Speed: 4
+    Agility: 5
+    Glide: 4
+    Lift: 4
+    Stability: 3
+  _unlock:
+    Kind: 1
+    Value: 80
+  _mesh: {fileID: 4300000, guid: 94d584dac937c40ae864c1f143b6f217, type: 2}
+  _material: {fileID: 2100000, guid: 154316167e2e84435afb27573cc1d45f, type: 2}
+  _thumbnail: {fileID: 21300000, guid: bbd3d365d222d4ec09e14fcb52080238, type: 3}

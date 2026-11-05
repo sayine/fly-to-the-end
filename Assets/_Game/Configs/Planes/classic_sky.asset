@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e596747e60aea46ac91a24790abd9e9f, type: 3}
+  m_Name: classic_sky
+  m_EditorClassIdentifier: 
+  _id: classic_sky
+  _displayName: Classic Dart (Sky)
+  _shape: 0
+  _pattern: 0
+  _primary: {r: 0.56078434, g: 0.78039217, b: 1, a: 1}
+  _secondary: {r: 0.36862746, g: 0.62352943, b: 0.8784314, a: 1}
+  _stats:
+    Speed: 3
+    Agility: 3
+    Glide: 3
+    Lift: 3
+    Stability: 3
+  _unlock:
+    Kind: 0
+    Value: 0
+  _mesh: {fileID: 4300000, guid: a5c3ae4420f074a5eac2ee9dd2bebc55, type: 2}
+  _material: {fileID: 2100000, guid: 7a99a41017f254d42b42d4020d089974, type: 2}
+  _thumbnail: {fileID: 21300000, guid: 06d34d0e49f2c4f38b8f318ead768e0d, type: 3}

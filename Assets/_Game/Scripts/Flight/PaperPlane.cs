@@ -23,6 +23,9 @@ namespace Game.Flight
         }
 
         [SerializeField] private FlightConfig _config;
+        [Tooltip("The visible plane (mesh and material swap with the selected plane).")]
+        [SerializeField] private MeshFilter _modelFilter;
+        [SerializeField] private MeshRenderer _modelRenderer;
         [SerializeField, HideInInspector] private Rigidbody _body;
         [SerializeField, HideInInspector] private Collider _collider;
 
@@ -51,6 +54,14 @@ namespace Game.Flight
             if (_collider == null) _collider = GetComponentInChildren<Collider>();
             _body.interpolation = RigidbodyInterpolation.Interpolate;
             _body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; // valid kinematic and dynamic
+        }
+
+        /// <summary>Flies with this config (a per-plane variant) and shows this look. Call while parked.</summary>
+        public void SetPlane(FlightConfig config, Mesh mesh, Material material)
+        {
+            if (config != null) _config = config;
+            if (_modelFilter != null && mesh != null) _modelFilter.sharedMesh = mesh;
+            if (_modelRenderer != null && material != null) _modelRenderer.sharedMaterial = material;
         }
 
         /// <summary>Parks the plane (kinematic) at a pose, e.g. the launch point.</summary>
@@ -114,7 +125,7 @@ namespace Game.Flight
 
             _state.Velocity = _body.linearVelocity;
             var acceleration = FlightModel.Step(ref _state, Controls, _config, Physics.gravity, Time.fixedDeltaTime);
-            Wind = WindField.Sample(_body.position, Time.time); // zones have no colliders: wind only pushes
+            Wind = WindField.Sample(_body.position, Time.time) * _config.WindResponse; // zones have no colliders: wind only pushes
             _body.linearVelocity = _state.Velocity; // includes this step's turn
             _body.AddForce(acceleration + Wind, ForceMode.Acceleration);
             _body.angularVelocity = Vector3.zero;

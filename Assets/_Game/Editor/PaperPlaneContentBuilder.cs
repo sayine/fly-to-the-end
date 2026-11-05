@@ -44,6 +44,7 @@ namespace Game.Editor
         /// <summary>Called by Tools/Template/Generate. force=false keeps an existing Paper Plane Game scene.</summary>
         private static bool _regenerateTextures;
         private static Game.Levels.LevelCatalog _catalog;
+        private static Game.Planes.PlaneCatalog _planes;
 
         [GameContentBuilder]
         public static void Build(bool force)
@@ -54,7 +55,8 @@ namespace Game.Editor
             AssetDatabase.SaveAssets();
             PatchScoreDisplay();
             _catalog = LevelBuilder.Build();
-            MenuUiBuilder.Build(_catalog);
+            _planes = PlaneBuilder.Build(force);
+            MenuUiBuilder.Build(_catalog, _planes);
             CreateMaterials();
             var mesh = BuildMesh();
             BuildPlanePrefab(mesh, force);
@@ -217,6 +219,8 @@ namespace Game.Editor
             EditorUtil.Set(plane, "_config", AssetDatabase.LoadAssetAtPath<FlightConfig>(FlightConfigPath));
             EditorUtil.Set(plane, "_body", body);
             EditorUtil.Set(plane, "_collider", collider);
+            EditorUtil.Set(plane, "_modelFilter", model.GetComponent<MeshFilter>());
+            EditorUtil.Set(plane, "_modelRenderer", renderer);
 
             EditorUtil.EnsureFolder("Assets/_Game/Prefabs");
             PrefabUtility.SaveAsPrefabAsset(root, PlanePrefabPath);
@@ -275,6 +279,8 @@ namespace Game.Editor
             EditorUtil.Set(game, "_hintView", hint);
             var mission = MissionSceneBuilder.Build(_catalog, plane, launchPoint, pad.GetComponent<Collider>(), Mat("Prop_B"), hint.transform);
             EditorUtil.Set(game, "_mission", mission);
+            EditorUtil.Set(game, "_planes", _planes);
+            EditorUtil.Set(game, "_unlockToast", PlaneUiBuilder.BuildToast());
 
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);
@@ -306,7 +312,11 @@ namespace Game.Editor
             flyerRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             flyer.transform.localScale = Vector3.one * 3f; // reads at menu distance
             var config = AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath);
-            EditorUtil.Set(flyer.AddComponent<MenuFlyer>(), "_config", config);
+            var menuFlyer = flyer.AddComponent<MenuFlyer>();
+            EditorUtil.Set(menuFlyer, "_config", config);
+            EditorUtil.Set(menuFlyer, "_planes", _planes);
+            EditorUtil.Set(menuFlyer, "_filter", flyer.GetComponent<MeshFilter>());
+            EditorUtil.Set(menuFlyer, "_renderer", flyerRenderer);
 
             var backdrop = cam.gameObject.AddComponent<MenuBackdrop>();
             EditorUtil.Set(backdrop, "_config", config);

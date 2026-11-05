@@ -1,6 +1,8 @@
 using System.Text;
 using Game.Flight;
 using Game.Levels;
+using Game.Planes;
+using Game.UI;
 using Template.Core;
 using Template.Services.Analytics;
 using Template.Services.Haptics;
@@ -41,11 +43,15 @@ namespace Game
         [SerializeField] private MissionDirector _mission;
         [Tooltip("First-time ghost-finger hint (the whole screen is the controller).")]
         [SerializeField] private TouchHintView _hintView;
+        [Tooltip("The 20 planes; the selected one (or a rewarded trial) is flown each run.")]
+        [SerializeField] private PlaneCatalog _planes;
+        [SerializeField] private UnlockToast _unlockToast;
 
         private const float ArrowMinLength = 0.5f;
         private const float ArrowMaxLength = 1.4f;
 
         private readonly FlickGesture _flick = new FlickGesture();
+        private FlightConfig[] _variants; // per-plane FlightConfig copies, created on first use
         private IPlayerInput _input;
         private IHapticService _haptics;
         private ISaveService _save;
@@ -103,6 +109,9 @@ namespace Game
 
         private void OnDestroy()
         {
+            if (_variants != null)
+                foreach (var v in _variants)
+                    if (v != null) Destroy(v);
             if (_plane == null) return;
             _plane.Crashed -= OnCrashed;
             _plane.Landed -= OnLanded;
@@ -115,6 +124,7 @@ namespace Game
             _scoreTenths = 0;
             _distance = 0f;
             if (_mission != null) _launchPad = _mission.Prepare();
+            ApplyPlane();
             ParkPlane();
             EventBus<ScoreChangedEvent>.Raise(new ScoreChangedEvent { Score = 0 });
         }
@@ -212,10 +222,22 @@ namespace Game
             }
         }
 
+        /// <summary>Flies the selected plane (or this run's trial): its stats on top of the base FlightConfig, its look.</summary>
+        private void ApplyPlane()
+        {
+            if (_planes == null || _planes.Count == 0) return;
+            var collection = PlaneCollection.Get(_planes);
+            var plane = collection.ForRun;
+            var index = _planes.IndexOf(plane.Id);
+            _variants ??= new FlightConfig[_planes.Count];
+            if (_variants[index] == null) _variants[index] = _flightConfig.CreateVariant(plane.Stats, _planes.Scaling);
+            _plane.SetPlane(_variants[index], plane.Mesh, plane.Material);
+        }
+
         // ---------- Launch / crash ----------
         private LaunchAim.Result Solve() =>
-            LaunchAim.Solve(_flick.Drag, _flick.Speed(_flightConfig.FlickWindow), _camera, _plane.transform.position,
-                _launchPoint.forward, _flightConfig);
+            LaunchAim.Solve(_flick.Drag, _flick.Speed(_plane.Config.FlickWindow), _camera, _plane.transform.position,
+                _launchPoint.forward, _plane.Config);
 
         private void Launch(LaunchAim.Result aim)
         {
@@ -273,6 +295,7 @@ namespace Game
         private void FinishRun()
         {
             _phase = RunPhase.Idle;
+            if (_planes != null) PlaneCollection.Get(_planes).ClearTrial(); // a rewarded trial lasts one run
             var levelRun = _mission != null && !_mission.IsFreeFlight;
             if (_won && levelRun)
             {
@@ -280,6 +303,9 @@ namespace Game
                 var newBest = GameProgress.Get(_mission.Catalog).Record(_mission.LevelIndex, stars, _scoreTenths);
                 Debug.Log($"[Level] {_mission.LevelIndex + 1} won: {stars} stars, {_airTime:0.0}s");
                 EventBus<LevelCompletedEvent>.Raise(new LevelCompletedEvent { Stars = stars, Score = _scoreTenths, IsNewBest = newBest });
+                if (_planes != null)
+                    foreach (var index in PlaneUnlocks.Evaluate(_planes, _mission.Catalog))
+                        if (_unlockToast != null) _unlockToast.Show(_planes.Get(index));
             }
             else
             {

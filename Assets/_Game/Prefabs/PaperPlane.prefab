@@ -96,6 +96,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _config: {fileID: 11400000, guid: 96a9caa2aef254dec8295d0394072cd2, type: 2}
+  _modelFilter: {fileID: 1787359385539472975}
+  _modelRenderer: {fileID: 7714828790930171420}
   _body: {fileID: 9166440294440784563}
   _collider: {fileID: 3676703346416737938}
 --- !u!1 &9112413472649692884

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e596747e60aea46ac91a24790abd9e9f, type: 3}
+  m_Name: golden_jet
+  m_EditorClassIdentifier: 
+  _id: golden_jet
+  _displayName: Golden Jet
+  _shape: 5
+  _pattern: 9
+  _primary: {r: 1, g: 0.8352941, b: 0.2901961, a: 1}
+  _secondary: {r: 0.8784314, g: 0.6313726, b: 0, a: 1}
+  _stats:
+    Speed: 5
+    Agility: 5
+    Glide: 4
+    Lift: 4
+    Stability: 4
+  _unlock:
+    Kind: 1
+    Value: 90
+  _mesh: {fileID: 4300000, guid: 5334829c4b9ce436e88f77288c9d8e88, type: 2}
+  _material: {fileID: 2100000, guid: f56de17bea66f438bbdfe2d845099099, type: 2}
+  _thumbnail: {fileID: 21300000, guid: 74e13613193b7449790f8816ca31392e, type: 3}

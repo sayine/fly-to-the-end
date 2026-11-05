@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e596747e60aea46ac91a24790abd9e9f, type: 3}
+  m_Name: tissue_floater
+  m_EditorClassIdentifier: 
+  _id: tissue_floater
+  _displayName: Tissue Floater
+  _shape: 4
+  _pattern: 0
+  _primary: {r: 1, g: 1, b: 1, a: 1}
+  _secondary: {r: 0.93333334, g: 0.9490196, b: 0.96862745, a: 1}
+  _stats:
+    Speed: 1
+    Agility: 3
+    Glide: 5
+    Lift: 5
+    Stability: 1
+  _unlock:
+    Kind: 1
+    Value: 70
+  _mesh: {fileID: 4300000, guid: f0ad3488524014d9f994ba29e6c2a80d, type: 2}
+  _material: {fileID: 2100000, guid: 09f18aceff3b445f5adc61e5e716e89f, type: 2}
+  _thumbnail: {fileID: 21300000, guid: 700de938fff374548acd0daa3679f77c, type: 3}
