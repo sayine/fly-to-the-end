@@ -16,10 +16,10 @@ MonoBehaviour:
   _room: Kids' room
   _mission: 1
   _objective: 'Launch from the top bunk: stay up 25 s'
-  _start: {x: 17.15, y: 3.52, z: 52}
+  _start: {x: 17.15, y: 2.46, z: 52}
   _startYaw: 270
   _bookStack: 1
-  _surfaceHeight: 2.72
+  _surfaceHeight: 1.66
   _stars:
   - 25
   - 35

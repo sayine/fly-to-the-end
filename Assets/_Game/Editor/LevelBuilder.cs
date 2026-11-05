@@ -28,20 +28,20 @@ namespace Game.Editor
             // (LevelLayoutTests checks every target lies flat on its surface).
             var coffee = new Vector3(-7.6f, 0.52f + 0.02f, -10f);
             var dining = new Vector3(-14f, 0.97f + 0.02f, 10.2f);
-            var bed = new Vector3(-11f, 1f * RoomLayout.FurnitureScale + 0.02f, 57f);
+            var bed = new Vector3(-11f, 0.44f + 0.02f, 56.9f);   // mattress (PropModels measures it on the model)
             var s = RoomLayout.FurnitureScale;
             // More starts (book stacks on the floor or on furniture).
             var hallStart = new Vector3(0f, 2.7f, 3.5f);
             var bed2Start = new Vector3(6f, 2.7f, 37.5f);
             var islandTop = 0.9f * s;
             var islandStart = new Vector3(-12.9f, islandTop + 1f, 18f);
-            var bunkTop = 1.7f * s;
+            var bunkTop = 1.66f; // top bunk mattress
             var bunkStart = new Vector3(RoomLayout.Bedroom2.max.x - 0.05f - 0.5f * s, bunkTop + 0.8f, 52f);
             var deskTop = 0.76f * s;
             var bed1DeskX = RoomLayout.Bedroom1.max.x - 0.05f - 0.4f * s;
             var bed1DeskStart = new Vector3(bed1DeskX, deskTop + 1.1f, 52f);
             var island = new Vector3(-14f, islandTop + 0.02f, 18f);
-            var armchair = new Vector3(8.2f, 1.41f + 0.02f, 11.6f);
+            var armchair = new Vector3(8.2f, 0.93f + 0.02f, 11.85f); // seat (the back is on the -Z side)
 
             var levels = new[]
             {
@@ -81,7 +81,7 @@ namespace Game.Editor
                         Ring(9f, 2.6f, 17f, 90f), Ring(12.5f, 2.5f, 19f, 70f), Ring(16f, 2.4f, 17.4f, 110f),
                     }),
                 Level(10, "Bedtime", "Bedroom", MissionType.Land, "Land on the bed (mind the ceiling fan)",
-                    landingStart, 0f, true, new[] { 0f, 0.9f, 0.45f }, land: bed, landSize: new Vector2(2.2f, 2.8f)),
+                    landingStart, 0f, true, new[] { 0f, 0.9f, 0.45f }, land: bed, landSize: new Vector2(2f, 2.4f)),
 
                 // ---------- 11-30 (Phase 4): every room, one new twist at a time ----------
                 Level(11, "Hall Pass", "Hallway", MissionType.Rings, "Fly through the rings down the hallway",
@@ -109,7 +109,7 @@ namespace Game.Editor
                         new Vector3(-14.5f, 2.1f, 53.5f), new Vector3(-17f, 2.3f, 52.5f), new Vector3(-15f, 2.8f, 50.5f),
                     }),
                 Level(17, "Reading Nook", "Study", MissionType.Land, "Land on the armchair",
-                    studyStart, 160f, true, new[] { 0f, 0.6f, 0.3f }, land: armchair, landSize: new Vector2(1.3f, 1.2f)),
+                    studyStart, 160f, true, new[] { 0f, 0.6f, 0.3f }, land: armchair, landSize: new Vector2(0.6f, 0.5f)),
                 Level(18, "Toy Hoops", "Kids' room", MissionType.Rings, "Weave through the toy room rings",
                     bed2Start, 0f, true, new[] { 0f, 10f, 7f }, rings: new[]
                     {
@@ -144,7 +144,7 @@ namespace Game.Editor
                         Ring(-19.5f, 2.6f, 19.5f, 200f), Ring(-17f, 2.4f, 13.5f, 130f),
                     }),
                 Level(25, "Nap Time", "Bedroom", MissionType.Land, "From the desk, land on the bed",
-                    bed1DeskStart, 300f, true, new[] { 0f, 0.8f, 0.4f }, surface: deskTop, land: bed, landSize: new Vector2(2.2f, 2.8f)),
+                    bed1DeskStart, 300f, true, new[] { 0f, 0.8f, 0.4f }, surface: deskTop, land: bed, landSize: new Vector2(2f, 2.4f)),
                 Level(26, "Toy Box", "Kids' room", MissionType.Gems, "Collect every toy-room gem",
                     bed2Start, 0f, true, new[] { 0.5f, 0.8f, 1f }, gems: new[]
                     {

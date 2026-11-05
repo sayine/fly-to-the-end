@@ -57,10 +57,13 @@ models are **visuals only** and replace the greybox renderers. So collision neve
   wing flex needs a simple mesh. Only try Meshy if you want a printed-paper look:
   `folded white paper airplane, dart shape, thin paper, 25 cm long`.
 
-## Phase 1 — the house (PENDING: Meshy returned server errors on 2026-11-05; all tasks refunded)
-Already mapped in `Assets/_Game/Editor/PropModels.cs`: drop each FBX + `Textures/<Name>_base_color.png` into
-`Assets/_Game/Art/Models/` (or generate via the Meshy MCP) and rebuild the scenes; until then these show as greybox.
-Settings used: Smart Topology, `meshy-t2.5`, FBX, style line above.
+## Phase 1 — the house (DONE 2026-11-05, second attempt; 280 credits)
+Imported into `Assets/_Game/Art/Models/` and mapped in `Assets/_Game/Editor/PropModels.cs`.
+Settings used: Smart Topology, `meshy-t2.5`, FBX, style line above; target polycount 1,000–3,500 by size.
+Fitting notes: the bed (yaw -90) and bunk bed (yaw 0) are long along Z; ceiling-fan blades, window and range hood
+fit their two largest sides (`Entry.Flat`); bed, bunk bed and armchairs get their collider lowered to the measured
+mattress/seat with extra boxes for headboards, rails and armrests (`SurfaceModels`).
+Known: the older `Radiator.fbx` is modelled lying flat, so it shows tiny; regenerate it upright or add a pitch.
 
 | File | Real size (W × H × D, m) | Prompt (add the style line) |
 |---|---|---|
