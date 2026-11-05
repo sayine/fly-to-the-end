@@ -27,6 +27,7 @@ namespace Game.UI
             public CanvasGroup Group;
             public GameObject NewBadge;
             public Image Frame;
+            public GameObject Lock;
         }
 
         [Serializable]
@@ -110,7 +111,8 @@ namespace Game.UI
                     cell.Condition.gameObject.SetActive(!owned);
                     if (!owned) cell.Condition.text = PlaneCollection.Describe(plane.Unlock);
                 }
-                if (cell.Group != null) cell.Group.alpha = owned ? 1f : 0.55f;
+                if (cell.Group != null) cell.Group.alpha = owned ? 1f : 0.8f;
+                if (cell.Lock != null) cell.Lock.SetActive(!owned);
                 if (cell.NewBadge != null) cell.NewBadge.SetActive(collection.IsUnseen(i));
                 if (cell.Frame != null) cell.Frame.color = i == _focus ? _frameOn : _frameOff;
             }

@@ -1,6 +1,7 @@
 using System;
 using Template.Core;
 using Template.Services.Haptics;
+using Template.UI.Widgets;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,6 +19,7 @@ namespace Template.UI
         [SerializeField, HideInInspector] private CanvasGroup _group;
 
         private IHapticService _haptics;
+        private ScreenIntro _intro; // optional entrance animation
 
         protected ScreenManager Screens { get; private set; }
         public bool IsVisible { get; private set; }
@@ -31,6 +33,7 @@ namespace Template.UI
             if (_canvas == null) _canvas = GetComponent<Canvas>();
             if (_group == null) _group = GetComponent<CanvasGroup>();
             ServiceLocator.TryGet(out _haptics);
+            _intro = GetComponent<ScreenIntro>();
             SetVisible(false);
             OnInit();
         }
@@ -39,6 +42,7 @@ namespace Template.UI
         {
             if (IsVisible) return;
             SetVisible(true);
+            if (_intro != null) _intro.Play();
             OnShow();
         }
 

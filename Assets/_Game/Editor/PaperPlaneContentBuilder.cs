@@ -53,10 +53,9 @@ namespace Game.Editor
             EditorUtil.LoadOrCreate<FlightConfig>(FlightConfigPath);
             WindLayout.LoadOrCreateConfig();
             AssetDatabase.SaveAssets();
-            PatchScoreDisplay();
             _catalog = LevelBuilder.Build();
             _planes = PlaneBuilder.Build(force);
-            MenuUiBuilder.Build(_catalog, _planes);
+            PaperScreens.Build(_catalog, _planes, force);
             CreateMaterials();
             var mesh = BuildMesh();
             BuildPlanePrefab(mesh, force);
@@ -83,45 +82,6 @@ namespace Game.Editor
             foreach (var dep in AssetDatabase.GetDependencies(path, false))
                 if (dep == script) return true;
             return false;
-        }
-
-        // ---------- UI ----------
-        /// <summary>Score is airborne time in tenths of a second: show it with one decimal.</summary>
-        private static void PatchScoreDisplay()
-        {
-            PatchPrefab<HUDScreen>($"{ScreensFolder}/HUDScreen.prefab", so =>
-            {
-                so.FindProperty("_scoreFormat").stringValue = "{0:0.0}";
-                so.FindProperty("_scoreScale").floatValue = 0.1f;
-            });
-            PatchPrefab<GameOverScreen>($"{ScreensFolder}/GameOverScreen.prefab", so =>
-            {
-                so.FindProperty("_scoreFormat").stringValue = "{0:0.0}s";
-                so.FindProperty("_bestFormat").stringValue = "BEST {0:0.0}s";
-                so.FindProperty("_scoreScale").floatValue = 0.1f;
-            });
-        }
-
-        private static void PatchPrefab<T>(string path, System.Action<SerializedObject> patch) where T : Component
-        {
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
-            {
-                Log.Error($"{path} missing: run Tools/Template/Generate Base Scenes first.");
-                return;
-            }
-            var root = PrefabUtility.LoadPrefabContents(path);
-            try
-            {
-                var component = root.GetComponent<T>();
-                var so = new SerializedObject(component);
-                patch(so);
-                so.ApplyModifiedPropertiesWithoutUndo();
-                PrefabUtility.SaveAsPrefabAsset(root, path);
-            }
-            finally
-            {
-                PrefabUtility.UnloadPrefabContents(root);
-            }
         }
 
         // ---------- Materials ----------
@@ -280,7 +240,7 @@ namespace Game.Editor
             var mission = MissionSceneBuilder.Build(_catalog, plane, launchPoint, pad.GetComponent<Collider>(), Mat("Prop_B"), hint.transform);
             EditorUtil.Set(game, "_mission", mission);
             EditorUtil.Set(game, "_planes", _planes);
-            EditorUtil.Set(game, "_unlockToast", PlaneUiBuilder.BuildToast());
+            EditorUtil.Set(game, "_unlockToast", PaperScreens.BuildToast());
 
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);
@@ -391,8 +351,8 @@ namespace Game.Editor
             scaler.referenceResolution = new Vector2(1080, 1920);
             scaler.matchWidthOrHeight = 0.5f;
 
-            var rounded = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
-            var circle = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            var rounded = PaperKit.Rounded;
+            var circle = PaperKit.Circle;
 
             // Invisible area in the lower screen that the ghost finger moves in.
             var area = new GameObject("HintArea", typeof(RectTransform)).GetComponent<RectTransform>();
@@ -408,8 +368,9 @@ namespace Game.Editor
             halo.transform.SetAsFirstSibling();
 
             // Label on a soft dark pill under the swipe (keeps the plane on the shelf uncovered).
-            var pill = UiImage(area, "HintLabel", rounded, new Color(0f, 0f, 0f, 0.28f), Vector2.zero);
+            var pill = UiImage(area, "HintLabel", rounded, new Color(0.1f, 0.14f, 0.25f, 0.5f), Vector2.zero);
             pill.type = Image.Type.Sliced;
+            pill.pixelsPerUnitMultiplier = 1.36f;
             var pillRt = pill.rectTransform;
             pillRt.anchorMin = new Vector2(0.15f, 0f);
             pillRt.anchorMax = new Vector2(0.85f, 0f);
@@ -419,7 +380,8 @@ namespace Game.Editor
             var labelGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             labelGo.transform.SetParent(pill.transform, false);
             var label = labelGo.GetComponent<TextMeshProUGUI>();
-            label.font = TMP_Settings.defaultFontAsset;
+            label.font = PaperKit.Font;
+            label.fontSharedMaterial = PaperKit.FontShadow;
             label.fontSize = 54f;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;

@@ -21,6 +21,8 @@ namespace Game.UI
             public TMP_Text Number;
             public Image[] Stars = new Image[3];
             public CanvasGroup Group;
+            public GameObject Lock;
+            public Image Face;
         }
 
         [SerializeField] private LevelCatalog _catalog;
@@ -29,6 +31,9 @@ namespace Game.UI
         [SerializeField] private Cell[] _cells = Array.Empty<Cell>();
         [SerializeField] private Color _starOn = new Color(1f, 0.82f, 0.25f, 1f);
         [SerializeField] private Color _starOff = new Color(1f, 1f, 1f, 0.2f);
+        [Tooltip("Tile face colours: the level Play continues from, the others.")]
+        [SerializeField] private Color _currentFace = new Color(1f, 0.79f, 0.24f, 1f);
+        [SerializeField] private Color _face = Color.white;
 
         public override bool IsOverlay => true;
 
@@ -46,10 +51,14 @@ namespace Game.UI
         {
             var progress = GameProgress.Get(_catalog);
             if (_totalStars != null) _totalStars.SetText("{0} / {1}", progress.TotalStars, progress.LevelCount * 3);
+            var current = progress.NextUnfinished;
             for (var i = 0; i < _cells.Length; i++)
             {
                 var cell = _cells[i];
                 var unlocked = progress.IsUnlocked(i);
+                if (cell.Lock != null) cell.Lock.SetActive(!unlocked);
+                if (cell.Number != null) cell.Number.gameObject.SetActive(unlocked);
+                if (cell.Face != null) cell.Face.color = i == current ? _currentFace : _face;
                 var stars = progress.StarsOf(i);
                 cell.Button.interactable = unlocked;
                 if (cell.Group != null) cell.Group.alpha = unlocked ? 1f : 0.45f;

@@ -115,27 +115,24 @@ namespace Game.Editor
         // ---------- HUD ----------
         private static MissionHudView BuildHud(Transform canvas)
         {
-            var rounded = UIBuilder.ButtonSprite;
             var root = new GameObject("MissionHud", typeof(RectTransform)).GetComponent<RectTransform>();
             root.SetParent(canvas, false);
             UIBuilder.Stretch(root);
 
-            // Intro (while aiming): level, room and objective on a soft panel near the top.
-            var intro = UIBuilder.Image(root, "Intro", new Vector2(0.5f, 0.8f), new Vector2(940f, 230f), new Color(0f, 0f, 0f, 0.35f));
-            var introImage = intro.GetComponent<Image>();
-            introImage.sprite = rounded;
-            introImage.type = Image.Type.Sliced;
-            var title = UIBuilder.Text(intro, "Title", "LEVEL 1", 58, new Vector2(0.5f, 0.72f), new Vector2(900f, 80f), UIBuilder.Accent);
-            var objective = UIBuilder.Text(intro, "Objective", "", 50, new Vector2(0.5f, 0.32f), new Vector2(900f, 120f), Color.white);
+            // Intro (while aiming): level, room and objective on a paper card near the top.
+            var intro = PaperKit.Card(root, "Intro", new Vector2(0.5f, 0.8f), new Vector2(920f, 250f));
+            intro.Find("Face").GetComponent<Image>().raycastTarget = false; // never blocks steering
+            var title = PaperKit.Txt(intro, "Title", "LEVEL 1", 52, new Vector2(0.5f, 0.74f), new Vector2(860f, 76f), PaperKit.Coral.Face);
+            var objective = PaperKit.Txt(intro, "Objective", "", 48, new Vector2(0.5f, 0.34f), new Vector2(860f, 120f), PaperKit.Ink);
             objective.textWrappingMode = TextWrappingModes.Normal;
 
-            // Progress (while flying): one line under the airtime counter.
-            var progressRoot = UIBuilder.Image(root, "Progress", new Vector2(0.5f, 1f), new Vector2(760f, 96f), new Color(0f, 0f, 0f, 0.3f));
-            progressRoot.anchoredPosition = new Vector2(0f, -330f);
-            var progressImage = progressRoot.GetComponent<Image>();
-            progressImage.sprite = rounded;
-            progressImage.type = Image.Type.Sliced;
-            var progress = UIBuilder.Text(progressRoot, "Text", "", 50, new Vector2(0.5f, 0.5f), new Vector2(740f, 90f), Color.white);
+            // Progress (while flying): a pill under the airtime counter.
+            var progressImage = PaperKit.Img(root, "Progress", PaperKit.Rounded, new Color(0.1f, 0.14f, 0.25f, 0.45f), new Vector2(0.5f, 1f),
+                new Vector2(720f, 92f), true, 1.4f);
+            var progressRoot = progressImage.rectTransform;
+            progressRoot.anchoredPosition = new Vector2(0f, -250f);
+            var progress = PaperKit.Txt(progressRoot, "Text", "", 46, new Vector2(0.5f, 0.5f), new Vector2(700f, 88f), Color.white,
+                PaperKit.TextStyle.Shadow);
 
             var view = root.gameObject.AddComponent<MissionHudView>();
             EditorUtil.Set(view, "_intro", intro.gameObject);
