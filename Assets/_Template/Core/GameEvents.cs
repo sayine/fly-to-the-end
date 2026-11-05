@@ -1,6 +1,9 @@
 namespace Template.Core
 {
-    /// <summary>Game flow: Boot → Menu → Playing ⇄ Paused → GameOver → (Continue | Retry | Menu).</summary>
+    /// <summary>
+    /// Game flow: Boot → Menu → Playing ⇄ Paused → GameOver → (Continue | Retry | Menu),
+    /// or Playing → LevelComplete → (Next | Retry | Menu) for level-based games.
+    /// </summary>
     public enum GameState
     {
         Boot,
@@ -8,6 +11,7 @@ namespace Template.Core
         Playing,
         Paused,
         GameOver,
+        LevelComplete,
     }
 
     // ---------- Flow → everyone ----------
@@ -46,6 +50,18 @@ namespace Template.Core
     /// <summary>Gameplay reports the lose condition. The flow decides what happens next.</summary>
     public struct PlayerDiedEvent : IEvent { }
 
+    /// <summary>Gameplay reports a won level (level-based games). The flow shows the level-complete screen.</summary>
+    public struct LevelCompletedEvent : IEvent
+    {
+        /// <summary>0-3.</summary>
+        public int Stars;
+        public int Score;
+        public bool IsNewBest;
+    }
+
+    /// <summary>Flow → gameplay: the player chose Next on the level-complete screen; advance before the next run starts.</summary>
+    public struct LevelAdvanceEvent : IEvent { }
+
     // ---------- UI → flow ----------
     public enum UIRequest
     {
@@ -55,6 +71,7 @@ namespace Template.Core
         Retry,
         Continue,
         Menu,
+        Next,
     }
 
     public struct UIRequestEvent : IEvent

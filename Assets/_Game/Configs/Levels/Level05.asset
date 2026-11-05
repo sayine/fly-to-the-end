@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
+  m_Name: Level05
+  m_EditorClassIdentifier: 
+  _title: Down the Hall
+  _room: Living room
+  _mission: 5
+  _objective: Fly down the hallway to the landing
+  _start: {x: 0, y: 3.12, z: -21.980001}
+  _startYaw: 0
+  _bookStack: 0
+  _surfaceHeight: 0
+  _stars:
+  - 0
+  - 20
+  - 14
+  _gems: []
+  _rings: []
+  _landCenter: {x: 0, y: 0, z: 0}
+  _landSize: {x: 0, y: 0}
+  _targetRoom:
+    m_Center: {x: 0, y: 2.5, z: 37.5}
+    m_Extent: {x: 10, y: 2.5, z: 2.5}

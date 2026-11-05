@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
+  m_Name: Level09
+  m_EditorClassIdentifier: 
+  _title: Study Slalom
+  _room: Study
+  _mission: 4
+  _objective: Weave through the rings
+  _start: {x: 5.6, y: 2.7, z: 17}
+  _startYaw: 90
+  _bookStack: 1
+  _surfaceHeight: 0
+  _stars:
+  - 0
+  - 6
+  - 4
+  _gems: []
+  _rings:
+  - Position: {x: 9, y: 2.6, z: 17}
+    Yaw: 90
+    Radius: 1.3
+  - Position: {x: 12.5, y: 2.5, z: 19}
+    Yaw: 70
+    Radius: 1.3
+  - Position: {x: 16, y: 2.4, z: 17.4}
+    Yaw: 110
+    Radius: 1.3
+  _landCenter: {x: 0, y: 0, z: 0}
+  _landSize: {x: 0, y: 0}
+  _targetRoom:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}

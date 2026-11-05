@@ -43,6 +43,7 @@ namespace Game.Editor
 
         /// <summary>Called by Tools/Template/Generate. force=false keeps an existing Paper Plane Game scene.</summary>
         private static bool _regenerateTextures;
+        private static Game.Levels.LevelCatalog _catalog;
 
         [GameContentBuilder]
         public static void Build(bool force)
@@ -52,6 +53,8 @@ namespace Game.Editor
             WindLayout.LoadOrCreateConfig();
             AssetDatabase.SaveAssets();
             PatchScoreDisplay();
+            _catalog = LevelBuilder.Build();
+            MenuUiBuilder.Build(_catalog);
             CreateMaterials();
             var mesh = BuildMesh();
             BuildPlanePrefab(mesh, force);
@@ -268,7 +271,10 @@ namespace Game.Editor
             EditorUtil.Set(game, "_chaseCamera", chase);
             EditorUtil.Set(game, "_camera", cam);
             EditorUtil.Set(game, "_aimArrow", arrow);
-            EditorUtil.Set(game, "_hintView", BuildTouchHint());
+            var hint = BuildTouchHint();
+            EditorUtil.Set(game, "_hintView", hint);
+            var mission = MissionSceneBuilder.Build(_catalog, plane, launchPoint, pad.GetComponent<Collider>(), Mat("Prop_B"), hint.transform);
+            EditorUtil.Set(game, "_mission", mission);
 
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);

@@ -11,6 +11,9 @@ namespace Template.UI.Screens
         [SerializeField] private Button _playButton;
         [SerializeField] private Button _settingsButton;
         [SerializeField] private TMP_Text _bestScoreText;
+        [Tooltip("TMP SetText format. {0:0.0} = one decimal place. Displayed value = best * _scoreScale.")]
+        [SerializeField] private string _bestFormat = "BEST {0}";
+        [SerializeField] private float _scoreScale = 1f;
 
         private ISaveService _save;
 
@@ -26,7 +29,7 @@ namespace Template.UI.Screens
             if (_bestScoreText == null) return;
             var best = _save?.Data.BestScore ?? 0;
             _bestScoreText.gameObject.SetActive(best > 0);
-            _bestScoreText.SetText("BEST {0}", best);
+            _bestScoreText.SetText(_bestFormat, best * _scoreScale);
         }
     }
 }

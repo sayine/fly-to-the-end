@@ -79,6 +79,14 @@ namespace Game.Flight
         [SerializeField, Range(0f, 5f)] private float _flutterAmplitude = 0.6f;
         [SerializeField, Range(0.1f, 10f)] private float _flutterFrequency = 2.5f;
 
+        [Header("Landing (Land missions)")]
+        [Tooltip("Touching a landing target sinking slower than this (m/s) is a landing, faster is a crash.")]
+        [SerializeField, Range(0.5f, 8f)] private float _landMaxVerticalSpeed = 2.5f;
+        [Tooltip("And slower than this overall (m/s).")]
+        [SerializeField, Range(1f, 20f)] private float _landMaxSpeed = 9f;
+        [Tooltip("The touched surface must face up at least this much (normal.y).")]
+        [SerializeField, Range(0f, 1f)] private float _landMinNormalY = 0.6f;
+
         [Header("Launch (flick)")]
         [SerializeField, Range(1f, 10f)] private float _minLaunchSpeed = 5f;
         [SerializeField, Range(2f, 15f)] private float _maxLaunchSpeed = 8.5f;
@@ -135,6 +143,9 @@ namespace Game.Flight
         public float StallWobble => _stallWobble;
         public float FlutterAmplitude => _flutterAmplitude;
         public float FlutterFrequency => _flutterFrequency;
+        public float LandMaxVerticalSpeed => _landMaxVerticalSpeed;
+        public float LandMaxSpeed => _landMaxSpeed;
+        public float LandMinNormalY => _landMinNormalY;
         public float MinLaunchSpeed => _minLaunchSpeed;
         public float MaxLaunchSpeed => Mathf.Max(_minLaunchSpeed, _maxLaunchSpeed);
         public float FlickSpeedForMin => _flickSpeedForMin;

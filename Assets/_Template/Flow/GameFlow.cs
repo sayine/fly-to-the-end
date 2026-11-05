@@ -13,9 +13,10 @@ namespace Template.Flow
 {
     /// <summary>
     /// Persistent game-flow state machine:
-    /// Menu → Playing ⇄ Paused → GameOver → (Rewarded Continue → Playing | Retry → Playing | Menu).
-    /// Listens to UIRequestEvent (from screens) and PlayerDiedEvent/ScoreChangedEvent (from gameplay).
-    /// Gameplay only listens to RunStartedEvent / RunContinuedEvent / GameStateChangedEvent.
+    /// Menu → Playing ⇄ Paused → GameOver → (Rewarded Continue → Playing | Retry → Playing | Menu), and for
+    /// level-based games Playing → LevelComplete → (Next → LevelAdvanceEvent + Playing | Retry → Playing | Menu).
+    /// Listens to UIRequestEvent (from screens) and PlayerDied/LevelCompleted/ScoreChanged (from gameplay).
+    /// Gameplay only listens to RunStarted / RunContinued / LevelAdvance / GameStateChanged.
     /// </summary>
     public sealed class GameFlow : MonoBehaviour
     {
@@ -33,6 +34,7 @@ namespace Template.Flow
         private PlayingState _playing;
         private PausedState _paused;
         private GameOverState _gameOver;
+        private LevelCompleteState _levelComplete;
 
         private int _score;
         private float _runDuration;
@@ -60,9 +62,11 @@ namespace Template.Flow
             _playing = new PlayingState(this);
             _paused = new PausedState(this);
             _gameOver = new GameOverState(this);
+            _levelComplete = new LevelCompleteState(this);
 
             EventBus<UIRequestEvent>.Subscribe(OnUIRequest);
             EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
+            EventBus<LevelCompletedEvent>.Subscribe(OnLevelCompleted);
             EventBus<ScoreChangedEvent>.Subscribe(OnScoreChanged);
             ServiceLocator.Get<IAppLifecycle>().PauseChanged += OnAppPause;
         }
@@ -71,6 +75,7 @@ namespace Template.Flow
         {
             EventBus<UIRequestEvent>.Unsubscribe(OnUIRequest);
             EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
+            EventBus<LevelCompletedEvent>.Unsubscribe(OnLevelCompleted);
             EventBus<ScoreChangedEvent>.Unsubscribe(OnScoreChanged);
         }
 
@@ -124,6 +129,19 @@ namespace Template.Flow
                 case UIRequest.Menu when State == GameState.GameOver:
                     _ads.ShowInterstitial(AdPlacements.GameOver, GoToMenu);
                     break;
+                case UIRequest.Next when State == GameState.LevelComplete:
+                    _ads.ShowInterstitial(AdPlacements.GameOver, () =>
+                    {
+                        EventBus<LevelAdvanceEvent>.Raise(default);
+                        StartNewRun();
+                    });
+                    break;
+                case UIRequest.Retry when State == GameState.LevelComplete:
+                    _ads.ShowInterstitial(AdPlacements.GameOver, StartNewRun);
+                    break;
+                case UIRequest.Menu when State == GameState.LevelComplete:
+                    _ads.ShowInterstitial(AdPlacements.GameOver, GoToMenu);
+                    break;
                 case UIRequest.Menu when State == GameState.Paused:
                     _analytics.LevelEnd(Level, "quit", _runDuration);
                     GoToMenu();
@@ -134,6 +152,13 @@ namespace Template.Flow
         private void OnPlayerDied(PlayerDiedEvent e)
         {
             if (State == GameState.Playing) _machine.ChangeState(_gameOver);
+        }
+
+        private void OnLevelCompleted(LevelCompletedEvent e)
+        {
+            if (State != GameState.Playing) return;
+            _score = e.Score;
+            _machine.ChangeState(_levelComplete);
         }
 
         private void OnScoreChanged(ScoreChangedEvent e) => _score = e.Score;
@@ -182,6 +207,19 @@ namespace Template.Flow
         }
 
         // ---------- States ----------
+        private sealed class LevelCompleteState : State
+        {
+            private readonly GameFlow _f;
+            public LevelCompleteState(GameFlow f) => _f = f;
+
+            public override void Enter()
+            {
+                _f.SetState(GameState.LevelComplete);
+                _f._analytics.LevelEnd(Level, "win", _f._runDuration);
+                _f._ui.Show<LevelCompleteScreen>();
+            }
+        }
+
         private sealed class MenuState : State
         {
             private readonly GameFlow _f;

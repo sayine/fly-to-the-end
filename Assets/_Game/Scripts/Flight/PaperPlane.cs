@@ -1,4 +1,5 @@
 using System;
+using Game.Levels;
 using Game.Wind;
 using UnityEngine;
 
@@ -7,7 +8,8 @@ namespace Game.Flight
     /// <summary>
     /// Rigidbody driver for the paper plane. Ready: kinematic on the launch pad. Flying: FlightModel forces in
     /// FixedUpdate, rotation set from the model. Crashed: plain physics (full gravity, free rotation) so the
-    /// crash tumble plays out. Any collision while flying is a crash (SPEC "Crash").
+    /// crash tumble plays out. Any collision while flying is a crash, except a gentle touchdown on a
+    /// LandingTarget, which is a landing (Landed: the plane settles kinematic where it touched).
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public sealed class PaperPlane : MonoBehaviour
@@ -17,6 +19,7 @@ namespace Game.Flight
             Ready,
             Flying,
             Crashed,
+            Landed,
         }
 
         [SerializeField] private FlightConfig _config;
@@ -29,6 +32,9 @@ namespace Game.Flight
 
         /// <summary>Raised once per flight, with the collider that was hit (null for out-of-bounds).</summary>
         public event Action<Collider> Crashed;
+
+        /// <summary>Raised once per flight on a gentle touchdown on a landing target, with the contact point.</summary>
+        public event Action<LandingTarget, Vector3> Landed;
 
         public Phase CurrentPhase { get; private set; } = Phase.Ready;
         public FlightControls Controls { get; set; }
@@ -117,7 +123,35 @@ namespace Game.Flight
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (CurrentPhase == Phase.Flying) Crash(collision.collider);
+            if (CurrentPhase != Phase.Flying) return;
+            if (collision.collider.TryGetComponent<LandingTarget>(out var target) && IsGentle(collision, out var point))
+            {
+                CurrentPhase = Phase.Landed;
+                EndGrace();
+                _body.linearVelocity = Vector3.zero;
+                _body.angularVelocity = Vector3.zero;
+                _body.isKinematic = true;
+                // Settle level on the surface, keeping the heading.
+                var flat = _state.Heading.sqrMagnitude > 0.01f ? _state.Heading : transform.forward;
+                _body.position = new Vector3(point.x, point.y + 0.03f, point.z);
+                _body.rotation = Quaternion.LookRotation(flat, Vector3.up);
+                Landed?.Invoke(target, point);
+                return;
+            }
+            Crash(collision.collider);
+        }
+
+        /// <summary>Soft enough to count as a landing: slow descent onto an upward-facing surface.</summary>
+        private bool IsGentle(Collision collision, out Vector3 point)
+        {
+            point = Vector3.zero;
+            if (collision.contactCount == 0) return false;
+            var contact = collision.GetContact(0);
+            point = contact.point;
+            var velocity = collision.relativeVelocity; // the plane's speed into the surface
+            return contact.normal.y >= _config.LandMinNormalY
+                && Mathf.Abs(velocity.y) <= _config.LandMaxVerticalSpeed
+                && velocity.magnitude <= _config.LandMaxSpeed;
         }
 
         private void EndGrace()

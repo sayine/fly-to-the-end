@@ -1,5 +1,6 @@
 using System.Text;
 using Game.Flight;
+using Game.Levels;
 using Template.Core;
 using Template.Services.Analytics;
 using Template.Services.Haptics;
@@ -24,7 +25,7 @@ namespace Game
             Idle,     // not Playing (menu, game over, paused)
             Aiming,   // plane on the pad, waiting for a flick
             Flying,
-            Settling, // crashed, tumble playing out
+            Settling, // flight over (crash or landing), result shown after a short beat
         }
 
         [SerializeField] private GameConfig _gameConfig;
@@ -36,6 +37,8 @@ namespace Game
         [SerializeField] private Camera _camera;
         [Tooltip("Faint direction preview while dragging (SPEC: no full trajectory).")]
         [SerializeField] private LineRenderer _aimArrow;
+        [Tooltip("Level setup and mission tracking (Free Flight when no level is selected).")]
+        [SerializeField] private MissionDirector _mission;
         [Tooltip("First-time ghost-finger hint (the whole screen is the controller).")]
         [SerializeField] private TouchHintView _hintView;
 
@@ -54,6 +57,9 @@ namespace Game
         private int _scoreTenths;
         private float _distance;
         private float _settleTimer;
+        private bool _won;            // the run ends as a won level (LevelCompletedEvent), not Game Over
+
+        private const float WinCelebrateTime = 1f; // keep flying this long after a mid-air win
         private Vector3 _lastPosition;
         private bool _wasPressed;
         private bool _tutorial;       // first-time hints active until the player has thrown and steered
@@ -74,6 +80,7 @@ namespace Game
             _tutorial = _save == null || !_save.Data.TutorialSeen;
             _steering = new TouchSteering(_gameConfig);
             _plane.Crashed += OnCrashed;
+            _plane.Landed += OnLanded;
             SetArrow(false);
             ParkPlane();
         }
@@ -83,6 +90,7 @@ namespace Game
             EventBus<RunStartedEvent>.Subscribe(OnRunStarted);
             EventBus<RunContinuedEvent>.Subscribe(OnRunContinued);
             EventBus<GameStateChangedEvent>.Subscribe(OnStateChanged);
+            EventBus<LevelAdvanceEvent>.Subscribe(OnLevelAdvance);
         }
 
         private void OnDisable()
@@ -90,11 +98,14 @@ namespace Game
             EventBus<RunStartedEvent>.Unsubscribe(OnRunStarted);
             EventBus<RunContinuedEvent>.Unsubscribe(OnRunContinued);
             EventBus<GameStateChangedEvent>.Unsubscribe(OnStateChanged);
+            EventBus<LevelAdvanceEvent>.Unsubscribe(OnLevelAdvance);
         }
 
         private void OnDestroy()
         {
-            if (_plane != null) _plane.Crashed -= OnCrashed;
+            if (_plane == null) return;
+            _plane.Crashed -= OnCrashed;
+            _plane.Landed -= OnLanded;
         }
 
         // ---------- Flow events ----------
@@ -103,12 +114,18 @@ namespace Game
             _airTime = 0f;
             _scoreTenths = 0;
             _distance = 0f;
+            if (_mission != null) _launchPad = _mission.Prepare();
             ParkPlane();
             EventBus<ScoreChangedEvent>.Raise(new ScoreChangedEvent { Score = 0 });
         }
 
-        /// <summary>Day 1 stand-in for "Second chance": relaunch from the pad, airborne time is kept.</summary>
+        /// <summary>Stand-in for "Second chance" (Phase 4): relaunch from the pad, airborne time is kept.</summary>
         private void OnRunContinued(RunContinuedEvent e) => ParkPlane();
+
+        private void OnLevelAdvance(LevelAdvanceEvent e)
+        {
+            if (_mission != null) GameProgress.Get(_mission.Catalog).Advance();
+        }
 
         private void OnStateChanged(GameStateChangedEvent e)
         {
@@ -137,11 +154,7 @@ namespace Game
                     break;
                 case RunPhase.Settling:
                     _settleTimer += dt;
-                    if (_settleTimer >= _gameConfig.CrashSettleTime)
-                    {
-                        _phase = RunPhase.Idle;
-                        EventBus<PlayerDiedEvent>.Raise(default);
-                    }
+                    if (_settleTimer >= _gameConfig.CrashSettleTime) FinishRun();
                     break;
             }
         }
@@ -190,6 +203,13 @@ namespace Game
             _distance += (p - _lastPosition).Flat().magnitude;
             _lastPosition = p;
             if (p.y < _gameConfig.OutOfBoundsHeight) _plane.Crash(null);
+
+            if (_mission != null && _phase == RunPhase.Flying)
+            {
+                _mission.Tick(dt);
+                // Mid-air win (all gems, last ring, reached the room): enjoy a moment of flight, then the result.
+                if (_mission.Tracker.Outcome == MissionOutcome.Success) BeginSettle(true, _gameConfig.CrashSettleTime - WinCelebrateTime);
+            }
         }
 
         // ---------- Launch / crash ----------
@@ -214,6 +234,7 @@ namespace Game
             _plane.Launch(velocity, _launchPad);
             _lastPosition = _plane.transform.position;
             _phase = RunPhase.Flying;
+            _mission?.OnLaunched();
             _wasPressed = _input != null && _input.IsPressed; // the launching finger can't start a steer
             _steerHintTime = 0f;
             SetHint(_tutorial ? TouchHint.Steer : TouchHint.None);
@@ -223,18 +244,53 @@ namespace Game
 
         private void OnCrashed(Collider hit)
         {
-            if (_phase != RunPhase.Flying) return;
-            _phase = RunPhase.Settling;
-            _settleTimer = 0f;
-            SetHint(TouchHint.None);
+            if (_phase != RunPhase.Flying) return; // also ignores crashes while celebrating a win
+            _mission?.FlightEnded();
+            BeginSettle(_mission != null && _mission.Tracker.Outcome == MissionOutcome.Success, 0f);
             _plane.Controls = default;
             _haptics?.Play(HapticType.Medium);
             Debug.Log($"[Plane] crash into {(hit != null ? hit.name : "out of bounds")} air={_airTime:0.0}s dist={_distance:0.0}m");
         }
 
+        private void OnLanded(LandingTarget target, Vector3 point)
+        {
+            if (_phase != RunPhase.Flying) return;
+            _mission?.Landed(target, point);
+            BeginSettle(_mission != null && _mission.Tracker.Outcome == MissionOutcome.Success, 0f);
+            _plane.Controls = default;
+            _haptics?.Play(HapticType.Light);
+        }
+
+        /// <summary>Flight is over (or won mid-air): the result follows after a short beat.</summary>
+        private void BeginSettle(bool won, float startTimer)
+        {
+            _phase = RunPhase.Settling;
+            _won = won;
+            _settleTimer = startTimer;
+            SetHint(TouchHint.None);
+        }
+
+        private void FinishRun()
+        {
+            _phase = RunPhase.Idle;
+            var levelRun = _mission != null && !_mission.IsFreeFlight;
+            if (_won && levelRun)
+            {
+                var stars = _mission.Tracker.Stars;
+                var newBest = GameProgress.Get(_mission.Catalog).Record(_mission.LevelIndex, stars, _scoreTenths);
+                Debug.Log($"[Level] {_mission.LevelIndex + 1} won: {stars} stars, {_airTime:0.0}s");
+                EventBus<LevelCompletedEvent>.Raise(new LevelCompletedEvent { Stars = stars, Score = _scoreTenths, IsNewBest = newBest });
+            }
+            else
+            {
+                EventBus<PlayerDiedEvent>.Raise(default);
+            }
+        }
+
         private void ParkPlane()
         {
             _phase = RunPhase.Aiming;
+            _won = false;
             _flick.Cancel();
             _wasPressed = _input != null && _input.IsPressed; // a held finger from the previous screen can't launch
             SetArrow(false);
