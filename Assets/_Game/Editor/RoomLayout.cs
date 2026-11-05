@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Template.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -5,41 +6,98 @@ using UnityEngine;
 namespace Game.Editor
 {
     /// <summary>
-    /// Layout 1 architecture and furniture: a living room (launch), a hallway with a helper fan, and a dining room.
-    /// Furniture is authored at real-world size and multiplied by <see cref="FurnitureScale"/> so a 25 cm plane
-    /// feels like a toy in a big home (play-test: real-size furniture looked lost under the ceiling).
+    /// The house (SPEC §1): living room (launch hub), hallway spine with kitchen and study off it, a landing, and two
+    /// bedrooms. Rooms are data (interior box, height, materials, doorways per wall); one builder makes each room's
+    /// floor, walls with door openings, ceiling, baseboards and door frames. Neighbouring rooms sit 2 × WallThickness
+    /// apart so each builds its own half of a shared wall and nothing overlaps; doorways line up in both halves.
+    /// Furniture is authored at real-world size × <see cref="FurnitureScale"/> (a 25 cm plane in a big home).
     /// Greybox primitives are the colliders; PropModels swaps their visuals for Meshy models.
     /// </summary>
     internal static class RoomLayout
     {
         public const float FurnitureScale = 1.6f;
         private const float WallThickness = 0.5f;
-        private const float DoorHalfWidth = 2.5f;
+        private const float DoorWidth = 5f;
         private const float DoorHeight = 4.5f;
 
-        /// <summary>Interiors (world space). Index 0 is the launch room. The chase camera stays inside these.</summary>
-        public static readonly Bounds[] Areas =
+        private enum Side { South, North, West, East }
+
+        private readonly struct Door
         {
-            FromMinMax(new Vector3(-11f, 0f, -17f), new Vector3(11f, 5.5f, 5f)),   // living room
-            FromMinMax(new Vector3(-2.5f, 0f, 5f), new Vector3(2.5f, 4.5f, 19f)),  // hallway
-            FromMinMax(new Vector3(-10f, 0f, 19f), new Vector3(10f, 5.5f, 39f)),   // dining room
+            public readonly Side Side;
+            public readonly float Center; // along the wall: x for South/North, z for West/East
+
+            public Door(Side side, float center)
+            {
+                Side = side;
+                Center = center;
+            }
+        }
+
+        private sealed class Room
+        {
+            public string Name;
+            public Bounds Interior;
+            public Door[] Doors;
+            public System.Func<RoomTextures.Set, Material> Wall;
+            public System.Func<RoomTextures.Set, Material> Floor; // null = the shared oak floor
+        }
+
+        private static readonly Room[] Rooms =
+        {
+            new Room { Name = "Living", Interior = Box3(-13f, 13f, -24f, 0f, 6f), Wall = m => m.WallLiving,
+                Doors = new[] { new Door(Side.North, 0f) } },
+            new Room { Name = "Hallway", Interior = Box3(-3f, 3f, 1f, 34f, 5f), Wall = m => m.WallHall,
+                Doors = new[] { new Door(Side.South, 0f), new Door(Side.North, 0f), new Door(Side.West, 17f), new Door(Side.East, 17f) } },
+            new Room { Name = "Kitchen", Interior = Box3(-24f, -4f, 6f, 28f, 6f), Wall = m => m.WallKitchen, Floor = m => m.FloorTiles,
+                Doors = new[] { new Door(Side.East, 17f) } },
+            new Room { Name = "Study", Interior = Box3(4f, 20f, 8f, 26f, 6f), Wall = m => m.WallStudy,
+                Doors = new[] { new Door(Side.West, 17f) } },
+            new Room { Name = "Landing", Interior = Box3(-10f, 10f, 35f, 40f, 5f), Wall = m => m.WallHall,
+                Doors = new[] { new Door(Side.South, 0f), new Door(Side.North, -6f), new Door(Side.North, 6f) } },
+            new Room { Name = "Bedroom1", Interior = Box3(-20f, -2f, 41f, 59f, 6f), Wall = m => m.WallBed1, Floor = m => m.CarpetLavender,
+                Doors = new[] { new Door(Side.South, -6f) } },
+            new Room { Name = "Bedroom2", Interior = Box3(2f, 18f, 41f, 59f, 6f), Wall = m => m.WallBed2, Floor = m => m.CarpetPeach,
+                Doors = new[] { new Door(Side.South, 6f) } },
         };
 
-        public static Bounds LivingRoom => Areas[0];
-        public static Bounds Hallway => Areas[1];
-        public static Bounds DiningRoom => Areas[2];
+        /// <summary>Interiors (world space). Index 0 is the launch room. The chase camera stays inside these.</summary>
+        public static readonly Bounds[] Areas = AreasOf(Rooms);
+
+        public static Bounds LivingRoom => Rooms[0].Interior;
+        public static Bounds Hallway => Rooms[1].Interior;
+        public static Bounds Kitchen => Rooms[2].Interior;
+        public static Bounds Study => Rooms[3].Interior;
+        public static Bounds Landing => Rooms[4].Interior;
+        public static Bounds Bedroom1 => Rooms[5].Interior;
+        public static Bounds Bedroom2 => Rooms[6].Interior;
 
         // Launch shelf (real 1.2 × 1.9 × 0.6 m) 1.3 m in front of the living-room back wall, leaving room for the
         // chase camera behind the plane; the plane sits on top.
         public static readonly Vector3 PadSize = new Vector3(1.2f, 1.9f, 0.6f) * FurnitureScale;
-        public static readonly Vector3 PadCenter = new Vector3(0f, PadSize.y * 0.5f, -17f + 1.3f + PadSize.z * 0.5f);
+        public static readonly Vector3 PadCenter = new Vector3(0f, PadSize.y * 0.5f, -24f + 1.3f + PadSize.z * 0.5f);
         public static readonly Vector3 LaunchPosition = new Vector3(0f, PadSize.y + 0.08f, PadCenter.z + PadSize.z * 0.25f);
 
-        private static Bounds FromMinMax(Vector3 min, Vector3 max)
+        // Furniture that wind sources sit on or next to (WindLayout uses the same spots).
+        public static float KitchenCounterZ => Kitchen.max.z - 0.05f - 0.65f * 0.5f * FurnitureScale;
+        public static Vector3 StoveTop => new Vector3(-18.8f, 0.9f * FurnitureScale, KitchenCounterZ);
+        public static Vector3 FridgeFront => new Vector3(Kitchen.min.x + 0.05f + 0.75f * FurnitureScale + 0.3f, 0f, 22f);
+        public static Vector3 StudyDeskTop => new Vector3(14.6f, 0.76f * FurnitureScale, Study.max.z - 0.05f - 0.8f * 0.5f * FurnitureScale);
+        public static Vector3 Bed2DeskTop => new Vector3(15.2f, 0.76f * FurnitureScale, Bedroom2.max.z - 0.05f - 0.8f * 0.5f * FurnitureScale);
+        public static Vector3 StudyLamp => new Vector3(6f, 1.85f * FurnitureScale, 9.8f);
+
+        private static Bounds Box3(float xMin, float xMax, float zMin, float zMax, float height)
         {
             var b = new Bounds();
-            b.SetMinMax(min, max);
+            b.SetMinMax(new Vector3(xMin, 0f, zMin), new Vector3(xMax, height, zMax));
             return b;
+        }
+
+        private static Bounds[] AreasOf(Room[] rooms)
+        {
+            var areas = new Bounds[rooms.Length];
+            for (var i = 0; i < rooms.Length; i++) areas[i] = rooms[i].Interior;
+            return areas;
         }
 
         // ---------- Architecture ----------
@@ -52,88 +110,139 @@ namespace Game.Editor
         {
             EditorUtil.EnsureFolder(MeshFolder);
             var t = WallThickness;
-            var a = LivingRoom;
-            var h = Hallway;
-            var d = DiningRoom;
-            const float floorTile = RoomTextures.FloorTileMetres;
-            const float wallTile = RoomTextures.WallTileMetres;
-            const float ceilingTile = RoomTextures.CeilingTileMetres;
 
-            // One floor slab under everything.
-            Slab(parent, "Floor", new Vector3(a.min.x - t, -t, a.min.z - t), new Vector3(a.max.x + t, 0f, d.max.z + t), m.Floor, floorTile);
-            Slab(parent, "Ceiling_Living", new Vector3(a.min.x - t, a.max.y, a.min.z - t), new Vector3(a.max.x + t, a.max.y + t, a.max.z), m.Ceiling, ceilingTile);
-            Slab(parent, "Ceiling_Dining", new Vector3(d.min.x - t, d.max.y, d.min.z), new Vector3(d.max.x + t, d.max.y + t, d.max.z + t), m.Ceiling, ceilingTile);
-            // Hallway ceiling runs between the two door walls (not through their lintels: no bright strip at the doors).
-            Slab(parent, "Ceiling_Hallway", new Vector3(h.min.x - t, h.max.y, h.min.z + t), new Vector3(h.max.x + t, h.max.y + t, h.max.z - t), m.Ceiling, ceilingTile);
+            // One oak slab under the whole house; rooms with their own floor get a thin overlay on top.
+            var all = Rooms[0].Interior;
+            foreach (var r in Rooms) all.Encapsulate(r.Interior);
+            Slab(parent, "Floor", new Vector3(all.min.x - t, -t, all.min.z - t), new Vector3(all.max.x + t, 0f, all.max.z + t),
+                m.FloorOak, RoomTextures.FloorTileMetres);
 
-            // Living room: full left/right/back walls, front wall with the doorway to the hallway.
-            Slab(parent, "Living_Wall_Left", new Vector3(a.min.x - t, 0f, a.min.z - t), new Vector3(a.min.x, a.max.y, a.max.z + t), m.WallLiving, wallTile);
-            Slab(parent, "Living_Wall_Right", new Vector3(a.max.x, 0f, a.min.z - t), new Vector3(a.max.x + t, a.max.y, a.max.z + t), m.WallLiving, wallTile);
-            Slab(parent, "Living_Wall_Back", new Vector3(a.min.x, 0f, a.min.z - t), new Vector3(a.max.x, a.max.y, a.min.z), m.WallLiving, wallTile);
-            WallWithDoor(parent, "Living_Wall_Front", a.min.x, a.max.x, a.max.z, a.max.z + t, a.max.y, m.WallLiving);
-
-            // Hallway side walls (the ceiling slab above covers the top).
-            Slab(parent, "Hallway_Wall_Left", new Vector3(h.min.x - t, 0f, h.min.z + t), new Vector3(h.min.x, h.max.y, h.max.z - t), m.WallHall, wallTile);
-            Slab(parent, "Hallway_Wall_Right", new Vector3(h.max.x, 0f, h.min.z + t), new Vector3(h.max.x + t, h.max.y, h.max.z - t), m.WallHall, wallTile);
-
-            // Dining room: back wall with the doorway, full front/left/right walls.
-            WallWithDoor(parent, "Dining_Wall_Back", d.min.x, d.max.x, d.min.z - t, d.min.z, d.max.y, m.WallDining);
-            Slab(parent, "Dining_Wall_Front", new Vector3(d.min.x, 0f, d.max.z), new Vector3(d.max.x, d.max.y, d.max.z + t), m.WallDining, wallTile);
-            Slab(parent, "Dining_Wall_Left", new Vector3(d.min.x - t, 0f, d.min.z - t), new Vector3(d.min.x, d.max.y, d.max.z + t), m.WallDining, wallTile);
-            Slab(parent, "Dining_Wall_Right", new Vector3(d.max.x, 0f, d.min.z - t), new Vector3(d.max.x + t, d.max.y, d.max.z + t), m.WallDining, wallTile);
-
-            BuildTrims(parent, m.Trim);
-        }
-
-        /// <summary>White baseboards along every wall and frames around both doorways (visual only, no colliders).</summary>
-        private static void BuildTrims(Transform parent, Material mat)
-        {
             var trims = new GameObject("Trims").transform;
             trims.SetParent(parent, false);
-            var a = LivingRoom;
-            var h = Hallway;
-            var d = DiningRoom;
-            var hb = BaseboardHeight;
-            var dp = TrimDepth;
-            var t = WallThickness;
-
-            void RoomBaseboards(string name, Bounds r, bool doorFront, bool doorBack)
-            {
-                Trim(trims, name + "_Left", new Vector3(r.min.x, 0f, r.min.z), new Vector3(r.min.x + dp, hb, r.max.z), mat);
-                Trim(trims, name + "_Right", new Vector3(r.max.x - dp, 0f, r.min.z), new Vector3(r.max.x, hb, r.max.z), mat);
-                Side(name + "_Back", r.min.z, r.min.z + dp, r, doorBack);
-                Side(name + "_Front", r.max.z - dp, r.max.z, r, doorFront);
-            }
-
-            void Side(string name, float z0, float z1, Bounds r, bool door)
-            {
-                if (!door)
-                {
-                    Trim(trims, name, new Vector3(r.min.x, 0f, z0), new Vector3(r.max.x, hb, z1), mat);
-                    return;
-                }
-                Trim(trims, name + "_L", new Vector3(r.min.x, 0f, z0), new Vector3(-DoorHalfWidth - DoorTrimWidth, hb, z1), mat);
-                Trim(trims, name + "_R", new Vector3(DoorHalfWidth + DoorTrimWidth, 0f, z0), new Vector3(r.max.x, hb, z1), mat);
-            }
-
-            void DoorFrame(string name, float z0, float z1)
-            {
-                var w = DoorTrimWidth;
-                Trim(trims, name + "_L", new Vector3(-DoorHalfWidth - w, 0f, z0), new Vector3(-DoorHalfWidth, DoorHeight + w, z1), mat);
-                Trim(trims, name + "_R", new Vector3(DoorHalfWidth, 0f, z0), new Vector3(DoorHalfWidth + w, DoorHeight + w, z1), mat);
-                Trim(trims, name + "_Top", new Vector3(-DoorHalfWidth, DoorHeight, z0), new Vector3(DoorHalfWidth, DoorHeight + w, z1), mat);
-            }
-
-            RoomBaseboards("Living_Baseboard", a, true, false);
-            RoomBaseboards("Dining_Baseboard", d, false, true);
-            Trim(trims, "Hallway_Baseboard_Left", new Vector3(h.min.x, 0f, h.min.z + t), new Vector3(h.min.x + dp, hb, h.max.z - t), mat);
-            Trim(trims, "Hallway_Baseboard_Right", new Vector3(h.max.x - dp, 0f, h.min.z + t), new Vector3(h.max.x, hb, h.max.z - t), mat);
-            DoorFrame("Living_DoorFrame", a.max.z - dp, a.max.z);
-            DoorFrame("Dining_DoorFrame", d.min.z, d.min.z + dp);
+            foreach (var room in Rooms) BuildRoom(parent, trims, room, m);
         }
 
-        private static void Trim(Transform parent, string name, Vector3 min, Vector3 max, Material mat)
+        private static void BuildRoom(Transform parent, Transform trims, Room room, RoomTextures.Set m)
         {
+            var t = WallThickness;
+            var r = room.Interior;
+            var wall = room.Wall(m);
+            var h = r.max.y;
+
+            if (room.Floor != null)
+            {
+                var floor = room.Floor(m);
+                var tile = floor == m.FloorTiles ? RoomTextures.TileFloorTileMetres : RoomTextures.CarpetTileMetres;
+                Slab(parent, $"{room.Name}_Floor", new Vector3(r.min.x, 0f, r.min.z), new Vector3(r.max.x, 0.01f, r.max.z), floor, tile);
+            }
+            Slab(parent, $"{room.Name}_Ceiling", new Vector3(r.min.x - t, h, r.min.z - t), new Vector3(r.max.x + t, h + t, r.max.z + t),
+                m.Ceiling, RoomTextures.CeilingTileMetres);
+
+            // South/North walls include the corners; West/East walls fit between them.
+            Wall(parent, room, Side.South, r.min.x - t, r.max.x + t, r.min.z - t, r.min.z, h, wall);
+            Wall(parent, room, Side.North, r.min.x - t, r.max.x + t, r.max.z, r.max.z + t, h, wall);
+            Wall(parent, room, Side.West, r.min.z, r.max.z, r.min.x - t, r.min.x, h, wall);
+            Wall(parent, room, Side.East, r.min.z, r.max.z, r.max.x, r.max.x + t, h, wall);
+
+            Baseboards(trims, room, m.Trim);
+            foreach (var door in room.Doors) DoorFrame(trims, room, door, m.Trim);
+        }
+
+        /// <summary>
+        /// One wall along `side`: runs a0..a1 along the wall, b0..b1 across it (outward thickness), split around the
+        /// doors on that side with a lintel above each door.
+        /// </summary>
+        private static void Wall(Transform parent, Room room, Side side, float a0, float a1, float b0, float b1, float height, Material mat)
+        {
+            var name = $"{room.Name}_Wall_{side}";
+            var cuts = new List<(float, float)>();
+            foreach (var d in room.Doors)
+                if (d.Side == side) cuts.Add((d.Center - DoorWidth * 0.5f, d.Center + DoorWidth * 0.5f));
+            cuts.Sort((x, y) => x.Item1.CompareTo(y.Item1));
+
+            var start = a0;
+            var i = 0;
+            foreach (var (c0, c1) in cuts)
+            {
+                WallPiece(parent, $"{name}_{i++}", side, start, c0, b0, b1, 0f, height, mat);
+                WallPiece(parent, $"{name}_{i++}", side, c0, c1, b0, b1, DoorHeight, height, mat); // lintel
+                start = c1;
+            }
+            WallPiece(parent, $"{name}_{i}", side, start, a1, b0, b1, 0f, height, mat);
+        }
+
+        private static void WallPiece(Transform parent, string name, Side side, float a0, float a1, float b0, float b1,
+            float y0, float y1, Material mat)
+        {
+            if (a1 - a0 < 0.01f || y1 - y0 < 0.01f) return;
+            var alongX = side == Side.South || side == Side.North;
+            var min = alongX ? new Vector3(a0, y0, b0) : new Vector3(b0, y0, a0);
+            var max = alongX ? new Vector3(a1, y1, b1) : new Vector3(b1, y1, a1);
+            Slab(parent, name, min, max, mat, RoomTextures.WallTileMetres);
+        }
+
+        /// <summary>White baseboards along the inside of every wall, skipping doorways (visual only).</summary>
+        private static void Baseboards(Transform parent, Room room, Material mat)
+        {
+            var r = room.Interior;
+            var hb = BaseboardHeight;
+            var dp = TrimDepth;
+            foreach (Side side in System.Enum.GetValues(typeof(Side)))
+            {
+                var alongX = side == Side.South || side == Side.North;
+                var a0 = alongX ? r.min.x : r.min.z;
+                var a1 = alongX ? r.max.x : r.max.z;
+                float b0, b1;
+                switch (side)
+                {
+                    case Side.South: b0 = r.min.z; b1 = r.min.z + dp; break;
+                    case Side.North: b0 = r.max.z - dp; b1 = r.max.z; break;
+                    case Side.West: b0 = r.min.x; b1 = r.min.x + dp; break;
+                    default: b0 = r.max.x - dp; b1 = r.max.x; break;
+                }
+                var start = a0;
+                var i = 0;
+                var cuts = new List<float>();
+                foreach (var d in room.Doors) if (d.Side == side) cuts.Add(d.Center);
+                cuts.Sort();
+                foreach (var c in cuts)
+                {
+                    TrimPiece(parent, $"{room.Name}_Baseboard_{side}_{i++}", alongX, start, c - DoorWidth * 0.5f - DoorTrimWidth, b0, b1, 0f, hb, mat);
+                    start = c + DoorWidth * 0.5f + DoorTrimWidth;
+                }
+                TrimPiece(parent, $"{room.Name}_Baseboard_{side}_{i}", alongX, start, a1, b0, b1, 0f, hb, mat);
+            }
+        }
+
+        /// <summary>Frame (two posts + top) around a doorway, on the room's side of the wall.</summary>
+        private static void DoorFrame(Transform parent, Room room, Door door, Material mat)
+        {
+            var r = room.Interior;
+            var dp = TrimDepth;
+            var w = DoorTrimWidth;
+            var alongX = door.Side == Side.South || door.Side == Side.North;
+            float b0, b1;
+            switch (door.Side)
+            {
+                case Side.South: b0 = r.min.z; b1 = r.min.z + dp; break;
+                case Side.North: b0 = r.max.z - dp; b1 = r.max.z; break;
+                case Side.West: b0 = r.min.x; b1 = r.min.x + dp; break;
+                default: b0 = r.max.x - dp; b1 = r.max.x; break;
+            }
+            var c0 = door.Center - DoorWidth * 0.5f;
+            var c1 = door.Center + DoorWidth * 0.5f;
+            var name = $"{room.Name}_DoorFrame_{door.Side}_{door.Center:0}";
+            TrimPiece(parent, name + "_A", alongX, c0 - w, c0, b0, b1, 0f, DoorHeight + w, mat);
+            TrimPiece(parent, name + "_B", alongX, c1, c1 + w, b0, b1, 0f, DoorHeight + w, mat);
+            TrimPiece(parent, name + "_Top", alongX, c0, c1, b0, b1, DoorHeight, DoorHeight + w, mat);
+        }
+
+        private static void TrimPiece(Transform parent, string name, bool alongX, float a0, float a1, float b0, float b1,
+            float y0, float y1, Material mat)
+        {
+            if (a1 - a0 < 0.01f) return;
+            var min = alongX ? new Vector3(a0, y0, b0) : new Vector3(b0, y0, a0);
+            var max = alongX ? new Vector3(a1, y1, b1) : new Vector3(b1, y1, a1);
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
             Object.DestroyImmediate(go.GetComponent<Collider>()); // part of the wall visually; the wall collides
@@ -141,15 +250,6 @@ namespace Game.Editor
             go.transform.localPosition = (min + max) * 0.5f;
             go.transform.localScale = max - min;
             Prepare(go, mat);
-        }
-
-        /// <summary>Wall across X at z0..z1 with a centred doorway (DoorHalfWidth, DoorHeight).</summary>
-        private static void WallWithDoor(Transform parent, string name, float xMin, float xMax, float z0, float z1, float height, Material mat)
-        {
-            const float tile = RoomTextures.WallTileMetres;
-            Slab(parent, name + "_L", new Vector3(xMin, 0f, z0), new Vector3(-DoorHalfWidth, height, z1), mat, tile);
-            Slab(parent, name + "_R", new Vector3(DoorHalfWidth, 0f, z0), new Vector3(xMax, height, z1), mat, tile);
-            Slab(parent, name + "_Top", new Vector3(-DoorHalfWidth, DoorHeight, z0), new Vector3(DoorHalfWidth, height, z1), mat, tile);
         }
 
         /// <summary>Solid box with world-scaled UVs (one texture repeat = tile metres on every face) and a box collider.</summary>
@@ -222,32 +322,74 @@ namespace Game.Editor
         {
             var props = new GameObject("Props").transform;
             props.SetParent(parent, false);
+            var s = FurnitureScale;
 
-            // Living room. Sofa (seat + back) on the left facing +X, armchair, coffee table, TV on its bench.
+            // Living room (x -13..13, z -24..0). Sofa facing +X, coffee table, TV on its bench, armchair.
             const float seatDepth = 1.0f;
-            Floor(props, "Sofa_Seat", -8.3f, -2f, new Vector3(seatDepth, 0.5f, 2.6f), a);
-            Floor(props, "Sofa_Back", -8.3f - (seatDepth + 0.3f) * 0.5f * FurnitureScale, -2f, new Vector3(0.3f, 1.2f, 2.6f), a);
-            Floor(props, "Armchair", -5.6f, -6.8f, new Vector3(1f, 0.9f, 1f), a);
-            Floor(props, "CoffeeTable", -5.6f, -2f, new Vector3(0.8f, 0.44f, 1.3f), b);
-            Floor(props, "TVBench", -3f, -2f, new Vector3(0.5f, 0.6f, 2.2f), b);
-            Floor(props, "TV", -3f, -2f, new Vector3(0.3f, 0.9f, 1.6f), a, 0.6f);
-            // Right wall: two wide bookshelves. Work desk near the launch shelf.
-            var shelfX = LivingRoom.max.x - 0.05f - 0.7f * 0.5f * FurnitureScale;
-            Floor(props, "Bookshelf_1", shelfX, -8.2f, new Vector3(0.7f, 2.2f, 1.8f), b);
-            Floor(props, "Bookshelf_2", shelfX, -5.1f, new Vector3(0.7f, 2.2f, 1.8f), b);
-            Floor(props, "Desk", 7.5f, -14.6f, new Vector3(1.6f, 0.76f, 0.8f), b);
-            Lamp(props, "Lamp", -9.8f, -15.2f, b, c);
-            Lamp(props, "Lamp2", 2.4f, 1.8f, b, c);
-            Plant(props, "Plant", 9.6f, 3.4f, 0.5f, 1.1f, b, c);
-            BoxStack(props, -9.5f, 3.4f, a, b, c);
+            Floor(props, "Sofa_Seat", -10.4f, -10f, new Vector3(seatDepth, 0.5f, 2.6f), a);
+            Floor(props, "Sofa_Back", -10.4f - (seatDepth + 0.3f) * 0.5f * s, -10f, new Vector3(0.3f, 1.2f, 2.6f), a);
+            Floor(props, "CoffeeTable", -7.6f, -10f, new Vector3(0.8f, 0.44f, 1.3f), b);
+            Floor(props, "TVBench", -4.8f, -10f, new Vector3(0.5f, 0.6f, 2.2f), b);
+            Floor(props, "TV", -4.8f, -10f, new Vector3(0.3f, 0.9f, 1.6f), a, 0.6f);
+            Floor(props, "Armchair", -7.6f, -15f, new Vector3(1f, 0.9f, 1f), a);
+            var livingShelfX = LivingRoom.max.x - 0.05f - 0.7f * 0.5f * s;
+            Floor(props, "Bookshelf_1", livingShelfX, -14.2f, new Vector3(0.7f, 2.2f, 1.8f), b);
+            Floor(props, "Bookshelf_2", livingShelfX, -11.1f, new Vector3(0.7f, 2.2f, 1.8f), b);
+            Floor(props, "Desk", 8.6f, -21.9f, new Vector3(1.6f, 0.76f, 0.8f), b);
+            Lamp(props, "Lamp", -11.6f, -22f, b, c);
+            Lamp(props, "Lamp2", 3.2f, -3.2f, b, c);
+            Plant(props, "Plant", 11.6f, -1.6f, 0.5f, 1.1f, b, c);
+            BoxStack(props, -11.6f, -1.9f, a, b, c);
 
-            // Dining room: table with two chairs, tall cabinet on the right wall, two plants.
-            Floor(props, "DiningTable", 4f, 28f, new Vector3(1.8f, 0.76f, 1f), b);
-            Floor(props, "Chair_1", 3.3f, 28f + 0.9f * FurnitureScale, new Vector3(0.45f, 0.9f, 0.45f), a);
-            Floor(props, "Chair_2", 4.7f, 28f - 0.9f * FurnitureScale, new Vector3(0.45f, 0.9f, 0.45f), a);
-            Floor(props, "Cabinet", DiningRoom.max.x - 0.05f - 0.6f * 0.5f * FurnitureScale, 34f, new Vector3(0.6f, 2.5f, 1.1f), a);
-            Plant(props, "Plant2", -8.4f, 36.4f, 0.6f, 1.6f, b, c);
-            Plant(props, "Plant3", 8.6f, 21.2f, 0.5f, 1.1f, b, c);
+            // Hallway (x -3..3, z 1..34): a plant on the landing side.
+            Plant(props, "Plant4", -8.6f, 36.4f, 0.5f, 1.1f, b, c);
+            Plant(props, "Plant5", 8.6f, 36.4f, 0.5f, 1.1f, b, c);
+
+            // Kitchen (x -24..-4, z 6..28; door on the east wall at z 17).
+            var k = Kitchen;
+            var counterZ = KitchenCounterZ;
+            Floor(props, "KitchenCounter", -13.6f, counterZ, new Vector3(4f, 0.9f, 0.65f), b);
+            Floor(props, "Stove", -18.8f, counterZ, new Vector3(0.8f, 0.9f, 0.65f), b);
+            Floor(props, "RangeHood", -18.8f, k.max.z - 0.05f - 0.5f * 0.5f * s, new Vector3(0.8f, 0.7f, 0.5f), a, 1.55f);
+            Floor(props, "Fridge", k.min.x + 0.05f + 0.75f * 0.5f * s, 22f, new Vector3(0.75f, 1.9f, 0.9f), a);
+            Floor(props, "KitchenIsland", -14f, 18f, new Vector3(2f, 0.9f, 1f), b);
+            for (var i = 0; i < 3; i++)
+                Floor(props, $"BarStool_{i + 1}", -15.6f + i * 1.6f, 18f - (0.5f + 0.35f) * s, new Vector3(0.4f, 0.75f, 0.4f), a);
+            Floor(props, "DiningTable", -14f, 10.2f, new Vector3(1.8f, 0.76f, 1f), b);
+            Floor(props, "Chair_1", -14.7f, 10.2f + 0.9f * s, new Vector3(0.45f, 0.9f, 0.45f), a);
+            Floor(props, "Chair_2", -13.3f, 10.2f - 0.9f * s, new Vector3(0.45f, 0.9f, 0.45f), a);
+            Plant(props, "Plant2", -5.4f, 26.6f, 0.6f, 1.6f, b, c);
+
+            // Study (x 4..20, z 8..26; door on the west wall at z 17).
+            var st = Study;
+            var studyShelfX = st.max.x - 0.05f - 0.7f * 0.5f * s;
+            Floor(props, "Bookshelf_3", studyShelfX, 11.2f, new Vector3(0.7f, 2.2f, 1.8f), b);
+            Floor(props, "Bookshelf_4", studyShelfX, 14.3f, new Vector3(0.7f, 2.2f, 1.8f), b);
+            Floor(props, "Bookshelf_5", studyShelfX, 17.4f, new Vector3(0.7f, 2.2f, 1.8f), b);
+            Floor(props, "StudyDesk", 13f, st.max.z - 0.05f - 0.8f * 0.5f * s, new Vector3(1.6f, 0.76f, 0.8f), b);
+            Floor(props, "OfficeChair", 13f, st.max.z - 0.8f * s - 0.6f * s, new Vector3(0.6f, 1.1f, 0.6f), a);
+            Floor(props, "Globe", 7.6f, 23.4f, new Vector3(0.5f, 1f, 0.5f), c);
+            Floor(props, "FilingCabinet", 5.2f, st.max.z - 0.05f - 0.6f * 0.5f * s, new Vector3(0.5f, 1.3f, 0.6f), a);
+            Floor(props, "Armchair_Study", 8.2f, 11.6f, new Vector3(1f, 0.9f, 1f), a);
+            Lamp(props, "Lamp3", 6f, 9.8f, b, c);
+
+            // Bedroom 1 (x -20..-2, z 41..59; door on the south wall at x -6).
+            var b1 = Bedroom1;
+            var bedZ = b1.max.z - 0.05f - 2.1f * 0.5f * s;
+            Floor(props, "Bed", -11f, bedZ, new Vector3(1.6f, 1f, 2.1f), a);
+            Floor(props, "Nightstand_1", -11f - (0.8f + 0.3f) * s, b1.max.z - 0.05f - 0.4f * 0.5f * s, new Vector3(0.5f, 0.55f, 0.4f), b);
+            Floor(props, "Nightstand_2", -11f + (0.8f + 0.3f) * s, b1.max.z - 0.05f - 0.4f * 0.5f * s, new Vector3(0.5f, 0.55f, 0.4f), b);
+            Floor(props, "Wardrobe", b1.min.x + 0.05f + 0.6f * 0.5f * s, 47f, new Vector3(0.6f, 2.5f, 1.1f), a);
+            Floor(props, "Desk_Bed1", b1.max.x - 0.05f - 0.8f * 0.5f * s, 52f, new Vector3(0.8f, 0.76f, 1.6f), b);
+            Plant(props, "Plant6", -3.4f, 42.6f, 0.5f, 1.1f, b, c);
+
+            // Bedroom 2 (x 2..18, z 41..59; door on the south wall at x 6). Kid's room.
+            var b2 = Bedroom2;
+            Floor(props, "BunkBed", b2.max.x - 0.05f - 1f * 0.5f * s, 52f, new Vector3(1f, 1.7f, 2f), a);
+            Floor(props, "ToyShelf", 8f, b2.max.z - 0.05f - 0.4f * 0.5f * s, new Vector3(1.2f, 1f, 0.4f), b);
+            Floor(props, "ToyBlocks", 9.6f, 49f, new Vector3(0.5f, 0.3f, 0.4f), c);
+            Floor(props, "Ball", 4.8f, 54f, new Vector3(0.3f, 0.3f, 0.3f), c);
+            Floor(props, "Desk_Bed2", 13.6f, b2.max.z - 0.05f - 0.8f * 0.5f * s, new Vector3(1.6f, 0.76f, 0.8f), b);
         }
 
         /// <summary>Box standing on the floor at (x, z); size in real-world metres (scaled), raised by baseHeight (real m).</summary>

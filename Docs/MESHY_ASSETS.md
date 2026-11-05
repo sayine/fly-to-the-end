@@ -56,3 +56,32 @@ models are **visuals only** and replace the greybox renderers. So collision neve
 - **Paper plane:** keep the generated mesh. It is tiny and thin, Meshy tends to make it thick, and Day 2's
   wing flex needs a simple mesh. Only try Meshy if you want a printed-paper look:
   `folded white paper airplane, dart shape, thin paper, 25 cm long`.
+
+## Phase 1 — the house (PENDING: Meshy returned server errors on 2026-11-05; all tasks refunded)
+Already mapped in `Assets/_Game/Editor/PropModels.cs`: drop each FBX + `Textures/<Name>_base_color.png` into
+`Assets/_Game/Art/Models/` (or generate via the Meshy MCP) and rebuild the scenes; until then these show as greybox.
+Settings used: Smart Topology, `meshy-t2.5`, FBX, style line above.
+
+| File | Real size (W × H × D, m) | Prompt (add the style line) |
+|---|---|---|
+| `KitchenCounter.fbx` | 4.0 × 0.9 × 0.65 | long kitchen counter with lower cabinets and drawers and a sink on top |
+| `KitchenIsland.fbx` | 2.0 × 0.9 × 1.0 | kitchen island with flat countertop and cabinets underneath |
+| `Fridge.fbx` | 0.9 × 1.9 × 0.75 | tall retro two-door refrigerator, rounded edges |
+| `Stove.fbx` | 0.8 × 0.9 × 0.65 | kitchen stove with oven door and four burners on top |
+| `RangeHood.fbx` | 0.8 × 0.7 × 0.5 | wall mounted kitchen range hood extractor, chimney style |
+| `BarStool.fbx` | 0.4 × 0.75 × 0.4 | tall wooden bar stool with round seat and footrest |
+| `Bed.fbx` | 1.6 × 1.0 × 2.1 | double bed with wooden headboard, mattress, duvet and two pillows |
+| `Nightstand.fbx` | 0.5 × 0.55 × 0.4 | small wooden bedside nightstand with one drawer and a little lamp on top |
+| `CeilingFan_Base.fbx` | 0.25 × 0.6 × 0.25 | ceiling fan motor housing with short down rod and ceiling mount, without blades |
+| `CeilingFan_Blades.fbx` | 1.3 × 0.06 × 1.3 | four-blade ceiling fan rotor seen flat, long flat wooden blades around a round central hub |
+| `Window.fbx` | 1.0 × 1.6 × 0.1 | tall open window with white wooden frame, two glass panes swung open and light flowing curtains |
+| `BunkBed.fbx` | 2.0 × 1.7 × 1.0 | wooden kids bunk bed with ladder, two mattresses with blankets and pillows |
+| `ToyShelf.fbx` | 1.2 × 1.0 × 0.4 | low wooden toy shelf with cubby compartments holding colorful toys |
+| `ToyBlocks.fbx` | 0.5 × 0.3 × 0.4 | small pile of colorful wooden toy building blocks |
+| `Ball.fbx` | 0.3 × 0.3 × 0.3 | colorful striped beach ball |
+| `DeskFan.fbx` | 0.3 × 0.4 × 0.25 | small retro desk fan with round grille cage and stand |
+| `OfficeChair.fbx` | 0.6 × 1.1 × 0.6 | swivel office chair with padded seat, backrest, armrests and five-star wheeled base |
+| `Globe.fbx` | 0.5 × 1.0 × 0.5 | antique world globe on a wooden floor stand |
+| `FilingCabinet.fbx` | 0.5 × 1.3 × 0.6 | metal office filing cabinet with four drawers and handles |
+
+Facing (yaw) per model is set in `PropModels.cs`; check each with a render after import.

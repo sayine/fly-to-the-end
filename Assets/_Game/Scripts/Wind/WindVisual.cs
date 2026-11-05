@@ -25,6 +25,8 @@ namespace Game.Wind
         private MaterialPropertyBlock _block;
         private Vector3 _markerScale;
         private Color _markerColor;
+        private float _motesRate;
+        private float _ribbonRate;
 
         private void Awake()
         {
@@ -34,6 +36,18 @@ namespace Game.Wind
 
         private void Update()
         {
+            if (_volume != null && _volume.Gusts)
+            {
+                // Streaks follow the gust so its timing is readable.
+                var gust = _volume.GustFactor(Time.time);
+                var motes = _motes.emission;
+                motes.rateOverTimeMultiplier = _motesRate * gust;
+                if (_ribbons != null)
+                {
+                    var ribbons = _ribbons.emission;
+                    ribbons.rateOverTimeMultiplier = _ribbonRate * gust;
+                }
+            }
             if (_floorMarker == null || _config == null || _block == null) return;
             var wave = Mathf.Sin(Time.time * _config.FloorMarkerPulse * Mathf.PI * 2f);
             _block.SetColor(ColorId, new Color(_markerColor.r, _markerColor.g, _markerColor.b, _markerColor.a * (0.7f + 0.3f * wave)));
@@ -60,7 +74,8 @@ namespace Game.Wind
             motesMain.startSize = new ParticleSystem.MinMaxCurve(0.02f, 0.045f);
             var zoneVolume = Mathf.PI * avgRadius * avgRadius * _volume.Length;
             var motesEmission = _motes.emission;
-            motesEmission.rateOverTime = Mathf.Min(_config.StreakDensity * zoneVolume, _config.MaxParticlesPerZone / (lifetime * 1.6f));
+            _motesRate = Mathf.Min(_config.StreakDensity * zoneVolume, _config.MaxParticlesPerZone / (lifetime * 1.6f));
+            motesEmission.rateOverTime = _motesRate;
             var twinkle = _motes.sizeOverLifetime;
             twinkle.enabled = kind == WindKind.Thermal;
             if (twinkle.enabled)
@@ -92,7 +107,8 @@ namespace Game.Wind
             var main = _ribbons.main;
             main.startSize = new ParticleSystem.MinMaxCurve(_config.RibbonWidth * 0.7f, _config.RibbonWidth);
             var emission = _ribbons.emission;
-            emission.rateOverTime = Mathf.Min(_config.RibbonRate * avgRadius, maxRibbons / lifetime);
+            _ribbonRate = Mathf.Min(_config.RibbonRate * avgRadius, maxRibbons / lifetime);
+            emission.rateOverTime = _ribbonRate;
 
             var noise = _ribbons.noise;
             noise.enabled = _config.RibbonWander > 0f;

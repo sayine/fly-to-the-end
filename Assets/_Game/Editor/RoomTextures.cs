@@ -7,7 +7,8 @@ namespace Game.Editor
 {
     /// <summary>
     /// Procedural, seamlessly tiling room textures (no downloads, no licences, tuned to the soft flat look):
-    /// oak plank floor (+ normal map), striped wallpaper, sage and beige plaster (shared plaster normal), ceiling.
+    /// oak plank floor and kitchen tiles (+ normal maps), carpet, striped wallpaper, one near-white plaster that each
+    /// room tints through its material colour (shared plaster normal), ceiling.
     /// Each material samples its texture with world-scaled UVs (see RoomLayout), so TileMetres below is the
     /// real-world size one texture repeat covers.
     /// </summary>
@@ -20,9 +21,14 @@ namespace Game.Editor
         public const float WallTileMetres = 1.6f;
         public const float CeilingTileMetres = 3f;
 
+        public const float TileFloorTileMetres = 0.4f * 4f * RoomLayout.FurnitureScale; // 4 × 4 ceramic tiles of ~64 cm
+        public const float CarpetTileMetres = 3f;
+
         public struct Set
         {
-            public Material Floor, WallLiving, WallHall, WallDining, Ceiling, Trim;
+            public Material FloorOak, FloorTiles, CarpetLavender, CarpetPeach;
+            public Material WallLiving, WallHall, WallKitchen, WallStudy, WallBed1, WallBed2;
+            public Material Ceiling, Trim;
         }
 
         /// <summary>Creates (or, with force, regenerates) the textures and returns the room materials.</summary>
@@ -31,22 +37,59 @@ namespace Game.Editor
             EditorUtil.EnsureFolder(Folder);
             var floor = Texture("FloorOak", 1024, force, false, FloorOak);
             var floorNormal = Texture("FloorOak_Normal", 1024, force, true, FloorOakHeight);
+            var tiles = Texture("FloorTiles", 512, force, false, FloorTiles);
+            var tilesNormal = Texture("FloorTiles_Normal", 512, force, true, FloorTilesHeight);
+            var carpet = Texture("Carpet", 512, force, false, (u, v) => Plaster(u, v, Color.white, 0.07f) * (0.94f + 0.06f * Fbm(u, v, 40, 40, 2, 21)));
             var wallpaper = Texture("WallpaperStripes", 512, force, false,
                 (u, v) => Plaster(u, v, new Color(0.96f, 0.9f, 0.8f), 0.035f) * Stripes(u, 8, new Color(0.93f, 0.9f, 0.85f)));
-            var sage = Texture("PlasterSage", 512, force, false, (u, v) => Plaster(u, v, new Color(0.74f, 0.82f, 0.72f), 0.05f));
-            var beige = Texture("PlasterBeige", 512, force, false, (u, v) => Plaster(u, v, new Color(0.93f, 0.84f, 0.72f), 0.05f));
+            // One near-white plaster for every plaster wall; each room tints it with the material colour.
+            var plaster = Texture("PlasterWhite", 512, force, false, (u, v) => Plaster(u, v, Color.white, 0.05f));
             var plasterNormal = Texture("Plaster_Normal", 512, force, true, (u, v) => Fbm(u, v, 6, 6, 4, 11) * 0.5f + 0.5f);
             var ceiling = Texture("CeilingPlaster", 256, force, false, (u, v) => Plaster(u, v, new Color(0.98f, 0.97f, 0.94f), 0.03f));
 
             return new Set
             {
-                Floor = MakeMaterial("Room_Floor", floor, floorNormal, 0.9f),
-                WallLiving = MakeMaterial("Room_Wall", wallpaper, plasterNormal, 0.35f),
-                WallHall = MakeMaterial("Room_Wall_Hall", beige, plasterNormal, 0.35f),
-                WallDining = MakeMaterial("Room_Wall_Dining", sage, plasterNormal, 0.35f),
-                Ceiling = MakeMaterial("Room_Ceiling", ceiling, null, 0f),
+                FloorOak = MakeMaterial("Room_Floor", floor, floorNormal, 0.9f, Color.white),
+                FloorTiles = MakeMaterial("Room_Floor_Kitchen", tiles, tilesNormal, 0.8f, Color.white),
+                CarpetLavender = MakeMaterial("Room_Floor_Bed1", carpet, null, 0f, new Color(0.78f, 0.74f, 0.88f)),
+                CarpetPeach = MakeMaterial("Room_Floor_Bed2", carpet, null, 0f, new Color(0.97f, 0.8f, 0.7f)),
+                WallLiving = MakeMaterial("Room_Wall", wallpaper, plasterNormal, 0.35f, Color.white),
+                WallHall = MakeMaterial("Room_Wall_Hall", plaster, plasterNormal, 0.35f, new Color(0.93f, 0.84f, 0.72f)),
+                WallKitchen = MakeMaterial("Room_Wall_Kitchen", plaster, plasterNormal, 0.35f, new Color(0.76f, 0.84f, 0.74f)),
+                WallStudy = MakeMaterial("Room_Wall_Study", plaster, plasterNormal, 0.35f, new Color(0.66f, 0.74f, 0.8f)),
+                WallBed1 = MakeMaterial("Room_Wall_Bed1", plaster, plasterNormal, 0.35f, new Color(0.74f, 0.83f, 0.94f)),
+                WallBed2 = MakeMaterial("Room_Wall_Bed2", plaster, plasterNormal, 0.35f, new Color(0.98f, 0.82f, 0.84f)),
+                Ceiling = MakeMaterial("Room_Ceiling", ceiling, null, 0f, Color.white),
                 Trim = EditorUtil.LoadOrCreateMaterial($"{MaterialsFolder}/Room_Trim.mat", new Color(0.97f, 0.95f, 0.92f)),
             };
+        }
+
+        // ---------- Kitchen tiles ----------
+        private const int TilesAcross = 4;
+
+        private static Color FloorTiles(float u, float v)
+        {
+            var groutAmount = Grout(u, v, out var tile);
+            // Soft cream / pale terracotta checker with a little per-tile variation.
+            var checker = ((tile.x + tile.y) & 1) == 0;
+            var baseColor = checker ? new Color(0.95f, 0.93f, 0.88f) : new Color(0.9f, 0.78f, 0.68f);
+            var c = baseColor * Mathf.Lerp(0.95f, 1.04f, Hash(tile.x * 17 + tile.y, 9)) * (1f + 0.03f * Fbm(u, v, 8, 8, 3, 31));
+            c = Color.Lerp(c, new Color(0.72f, 0.7f, 0.66f), groutAmount);
+            c.a = 1f;
+            return c;
+        }
+
+        private static float FloorTilesHeight(float u, float v) => 1f - Grout(u, v, out _) * 0.8f;
+
+        private static float Grout(float u, float v, out Vector2Int tile)
+        {
+            var x = u * TilesAcross;
+            var y = v * TilesAcross;
+            tile = new Vector2Int(Mathf.FloorToInt(x), Mathf.FloorToInt(y));
+            var fx = x - tile.x;
+            var fy = y - tile.y;
+            var edge = Mathf.Min(Mathf.Min(fx, 1f - fx), Mathf.Min(fy, 1f - fy)) / TilesAcross;
+            return 1f - Mathf.SmoothStep(0f, 1f, edge / 0.004f);
         }
 
         // ---------- Patterns (u, v in [0, 1): one repeat) ----------
@@ -211,10 +254,10 @@ namespace Game.Editor
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
-        private static Material MakeMaterial(string name, Texture2D albedo, Texture2D normal, float bumpScale)
+        private static Material MakeMaterial(string name, Texture2D albedo, Texture2D normal, float bumpScale, Color tint)
         {
-            var mat = EditorUtil.LoadOrCreateMaterial($"{MaterialsFolder}/{name}.mat", Color.white);
-            mat.SetColor("_BaseColor", Color.white);
+            var mat = EditorUtil.LoadOrCreateMaterial($"{MaterialsFolder}/{name}.mat", tint);
+            mat.SetColor("_BaseColor", tint);
             mat.SetTexture("_BaseMap", albedo);
             if (normal != null)
             {

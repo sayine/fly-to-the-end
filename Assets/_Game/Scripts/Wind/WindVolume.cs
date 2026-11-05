@@ -19,6 +19,14 @@ namespace Game.Wind
         [Tooltip("This zone's strength relative to its kind in WindConfig (e.g. 0.55 for a gentle helper fan).")]
         [SerializeField, Range(0f, 3f)] private float _strengthScale = 1f;
 
+        [Header("Gust (period 0 = steady)")]
+        [Tooltip("Seconds per on/off cycle, e.g. a window that gusts every few seconds.")]
+        [SerializeField, Min(0f)] private float _gustPeriod;
+        [Tooltip("Fraction of the cycle the gust blows.")]
+        [SerializeField, Range(0.05f, 1f)] private float _gustOnFraction = 0.4f;
+        [Tooltip("Offset into the cycle (0..1) so several gusts don't sync.")]
+        [SerializeField, Range(0f, 1f)] private float _gustPhase;
+
         private Vector3 _origin;
         private Vector3 _axis = Vector3.forward;
         private float _noiseSeed;
@@ -27,6 +35,7 @@ namespace Game.Wind
         public float Length => _length;
         public float StartRadius => _startRadius;
         public float EndRadius => _endRadius;
+        public bool Gusts => _gustPeriod > 0f;
 
         private void OnEnable()
         {
@@ -45,11 +54,23 @@ namespace Game.Wind
             _axis = transform.forward;
         }
 
+        /// <summary>0..1 gust envelope at time (1 for steady zones): smooth ramp up, hold, smooth ramp down, calm.</summary>
+        public float GustFactor(float time)
+        {
+            if (_gustPeriod <= 0f) return 1f;
+            var t = Mathf.Repeat(time / _gustPeriod + _gustPhase, 1f);
+            if (t >= _gustOnFraction) return 0f;
+            var ramp = Mathf.Min(0.12f, _gustOnFraction * 0.4f);
+            return Mathf.SmoothStep(0f, 1f, t / ramp) * Mathf.SmoothStep(0f, 1f, (_gustOnFraction - t) / ramp);
+        }
+
         /// <summary>Acceleration this zone applies at position (zero outside).</summary>
         public Vector3 Sample(Vector3 position, float time)
         {
             if (_config == null) return Vector3.zero;
-            var strength = WindMath.BeamStrength(position - _origin, _axis, _length, _startRadius, _endRadius,
+            var gust = GustFactor(time);
+            if (gust <= 0f) return Vector3.zero;
+            var strength = gust * WindMath.BeamStrength(position - _origin, _axis, _length, _startRadius, _endRadius,
                 _config.LengthFalloff, _config.EdgeSoftness);
             if (strength <= 0f) return Vector3.zero;
             var noise = Mathf.PerlinNoise(_noiseSeed + time * _config.TurbulenceFrequency, position.y * 0.5f) * 2f - 1f;

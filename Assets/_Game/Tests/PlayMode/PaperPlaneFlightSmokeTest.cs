@@ -61,7 +61,7 @@ namespace Game.Tests
         }
 
         [UnityTest]
-        public IEnumerator HallwayFan_CarriesPlaneIntoDiningRoom()
+        public IEnumerator HallwayFan_CarriesPlaneDownTheHallway()
         {
             SceneManager.LoadScene(SceneNames.Boot);
             GameFlow flow = null;
@@ -79,7 +79,7 @@ namespace Game.Tests
             {
                 peakSpeed = Mathf.Max(peakSpeed, plane.Velocity.magnitude);
                 return plane.transform.position.z > 20f || plane.CurrentPhase != PaperPlane.Phase.Flying;
-            }, 10f, "reach the dining room or crash");
+            }, 10f, "fly 14 m down the hallway or crash");
             Debug.Log($"[Test] hallway: reached z {plane.transform.position.z:0.0}, peak speed {peakSpeed:0.00} m/s, phase {plane.CurrentPhase}");
             Assert.AreEqual(PaperPlane.Phase.Flying, plane.CurrentPhase, "crashed in the hallway");
             Assert.Greater(peakSpeed, 6f, "the hallway fan should push the plane along (cruise is 5 m/s)");
