@@ -48,7 +48,11 @@ namespace Template.Core
     }
 
     /// <summary>Gameplay reports the lose condition. The flow decides what happens next.</summary>
-    public struct PlayerDiedEvent : IEvent { }
+    public struct PlayerDiedEvent : IEvent
+    {
+        /// <summary>True when this run's score is not the game's "best" (e.g. a failed level in a level-based game).</summary>
+        public bool NotForBest;
+    }
 
     /// <summary>Gameplay reports a won level (level-based games). The flow shows the level-complete screen.</summary>
     public struct LevelCompletedEvent : IEvent

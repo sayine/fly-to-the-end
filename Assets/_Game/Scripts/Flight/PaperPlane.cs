@@ -32,6 +32,7 @@ namespace Game.Flight
         private FlightState _state;
         private Collider _ignored;
         private float _graceLeft;
+        private float _invulnerableUntil = -1f;
 
         /// <summary>Raised once per flight, with the collider that was hit (null for out-of-bounds).</summary>
         public event Action<Collider> Crashed;
@@ -47,6 +48,8 @@ namespace Game.Flight
         public Vector3 Velocity => _body.linearVelocity;
         /// <summary>Wind acceleration applied this physics step (for telemetry and feedback).</summary>
         public Vector3 Wind { get; private set; }
+        /// <summary>After a second-chance respawn: bumping into things doesn't crash (the plane blinks).</summary>
+        public bool IsInvulnerable => CurrentPhase == Phase.Flying && Time.time < _invulnerableUntil;
 
         private void Awake()
         {
@@ -68,6 +71,7 @@ namespace Game.Flight
         public void PlaceAt(Vector3 position, Quaternion rotation)
         {
             EndGrace();
+            EndInvulnerable();
             CurrentPhase = Phase.Ready;
             Controls = default;
             Wind = Vector3.zero;
@@ -103,12 +107,38 @@ namespace Game.Flight
             CurrentPhase = Phase.Flying;
         }
 
+        /// <summary>Second chance: back in the air at a pose with a velocity; collisions don't crash for a while.</summary>
+        public void Respawn(Vector3 position, Vector3 velocity, float invulnerableSeconds)
+        {
+            PlaceAt(position, Quaternion.LookRotation(velocity.sqrMagnitude > 0.01f ? velocity : transform.forward, Vector3.up));
+            Launch(velocity, null);
+            _invulnerableUntil = Time.time + invulnerableSeconds;
+        }
+
+        private void EndInvulnerable()
+        {
+            _invulnerableUntil = -1f;
+            if (_modelRenderer != null) _modelRenderer.enabled = true;
+        }
+
+        private void Update()
+        {
+            if (_invulnerableUntil < 0f) return;
+            if (!IsInvulnerable)
+            {
+                EndInvulnerable();
+                return;
+            }
+            if (_modelRenderer != null) _modelRenderer.enabled = Mathf.Repeat(Time.time * 8f, 1f) < 0.6f; // blink
+        }
+
         /// <summary>Ends the flight (also used for out-of-bounds). Safe to call more than once.</summary>
         public void Crash(Collider hit)
         {
             if (CurrentPhase != Phase.Flying) return;
             CurrentPhase = Phase.Crashed;
             EndGrace();
+            EndInvulnerable();
             _body.useGravity = true; // full gravity: crashes read as heavy and quick
             Crashed?.Invoke(hit);
         }
@@ -139,6 +169,7 @@ namespace Game.Flight
             {
                 CurrentPhase = Phase.Landed;
                 EndGrace();
+                EndInvulnerable();
                 _body.linearVelocity = Vector3.zero;
                 _body.angularVelocity = Vector3.zero;
                 _body.isKinematic = true;
@@ -149,6 +180,7 @@ namespace Game.Flight
                 Landed?.Invoke(target, point);
                 return;
             }
+            if (IsInvulnerable) return; // bounce off, keep flying
             Crash(collision.collider);
         }
 

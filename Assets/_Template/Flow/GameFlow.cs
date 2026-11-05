@@ -39,6 +39,7 @@ namespace Template.Flow
         private int _score;
         private float _runDuration;
         private bool _continuedThisRun;
+        private bool _scoreCountsForBest = true;
 
         public GameState State { get; private set; } = GameState.Boot;
 
@@ -100,7 +101,7 @@ namespace Template.Flow
                 _continuedThisRun = false;
                 _input?.Calibrate();
                 EventBus<RunStartedEvent>.Raise(default);
-                _analytics.LevelStart(Level);
+                if (!GameLogsLevels) _analytics.LevelStart(Level);
                 _machine.ChangeState(_playing);
             });
         }
@@ -143,7 +144,7 @@ namespace Template.Flow
                     _ads.ShowInterstitial(AdPlacements.GameOver, GoToMenu);
                     break;
                 case UIRequest.Menu when State == GameState.Paused:
-                    _analytics.LevelEnd(Level, "quit", _runDuration);
+                    if (!GameLogsLevels) _analytics.LevelEnd(Level, "quit", _runDuration);
                     GoToMenu();
                     break;
             }
@@ -151,8 +152,12 @@ namespace Template.Flow
 
         private void OnPlayerDied(PlayerDiedEvent e)
         {
-            if (State == GameState.Playing) _machine.ChangeState(_gameOver);
+            if (State != GameState.Playing) return;
+            _scoreCountsForBest = !e.NotForBest;
+            _machine.ChangeState(_gameOver);
         }
+
+        private static bool GameLogsLevels => ServiceLocator.IsRegistered<ILevelAnalyticsOwner>();
 
         private void OnLevelCompleted(LevelCompletedEvent e)
         {
@@ -215,7 +220,7 @@ namespace Template.Flow
             public override void Enter()
             {
                 _f.SetState(GameState.LevelComplete);
-                _f._analytics.LevelEnd(Level, "win", _f._runDuration);
+                if (!GameLogsLevels) _f._analytics.LevelEnd(Level, "win", _f._runDuration);
                 _f._ui.Show<LevelCompleteScreen>();
             }
         }
@@ -277,14 +282,14 @@ namespace Template.Flow
             {
                 _f.SetState(GameState.GameOver);
                 var data = _f._save.Data;
-                var isNewBest = _f._score > data.BestScore;
+                var isNewBest = _f._scoreCountsForBest && _f._score > data.BestScore;
                 if (isNewBest)
                 {
                     data.BestScore = _f._score;
                     _f._save.Save();
                 }
 
-                _f._analytics.LevelEnd(Level, "lose", _f._runDuration);
+                if (!GameLogsLevels) _f._analytics.LevelEnd(Level, "lose", _f._runDuration);
                 _f._analytics.GameOver(Level, _f._score);
                 _f._ui.Show<GameOverScreen>();
                 _f.RaiseGameOver(isNewBest);

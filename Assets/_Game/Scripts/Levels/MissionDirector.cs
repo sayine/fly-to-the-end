@@ -88,6 +88,13 @@ namespace Game.Levels
             if (_hud != null) _hud.ShowProgress(Tracker);
         }
 
+        /// <summary>Second chance: the failed mission continues (gems, rings and time kept).</summary>
+        public void Resume()
+        {
+            Tracker?.Resume();
+            if (_hud != null && Tracker != null) _hud.ShowProgress(Tracker);
+        }
+
         public void Tick(float deltaTime)
         {
             if (Tracker == null) return;

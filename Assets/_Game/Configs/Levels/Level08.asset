@@ -26,8 +26,8 @@ MonoBehaviour:
   - 0.4
   _gems: []
   _rings: []
-  _landCenter: {x: -14, y: 1.236, z: 10.2}
-  _landSize: {x: 2.5, y: 1.3}
+  _landCenter: {x: -14, y: 0.99, z: 10.2}
+  _landSize: {x: 2.3, y: 1.3}
   _targetRoom:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}

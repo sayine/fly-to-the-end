@@ -165,6 +165,9 @@ procedural level generation, localization beyond English.
 3. **Planes:** `PlaneConfig` + stat multipliers, 20 procedural paper planes, hangar, unlock rules, daily check-in,
    rewarded "Try it".
 4. **Content and polish:** levels 11-30, Free Flight mode wiring, ads + analytics events, tuning on device.
+   Status: levels 11-30 (layout-checked by `LevelLayoutTests`), Second chance (mid-air respawn, 2 s invulnerable,
+   mission progress kept), Boost throw, spec analytics events, level fails no longer set the Free Flight best: done.
+   Still open: rewarded "Try it" on the level intro (hangar only for now), tuning and the 60 FPS profile on device.
 
 ## Acceptance criteria (per phase)
 - Compiles with zero errors; EditMode + PlayMode tests pass; Boot scene plays in the Editor.

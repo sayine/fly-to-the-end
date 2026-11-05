@@ -66,6 +66,7 @@ namespace Game.UI
         {
             var checkIn = DailyCheckIn.Get();
             var newDay = checkIn.CheckInToday();
+            if (newDay) PaperAnalytics.CheckIn(checkIn.DaysPlayed);
             PlaneConfig unlockedToday = null;
             foreach (var index in PlaneUnlocks.Evaluate(_planes, _catalog))
                 if (_planes.Get(index).Unlock.Kind == UnlockKind.CheckIn) unlockedToday = _planes.Get(index);

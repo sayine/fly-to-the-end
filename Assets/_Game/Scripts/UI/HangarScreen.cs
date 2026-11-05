@@ -88,6 +88,8 @@ namespace Game.UI
         private void Focus(int index)
         {
             _focus = index;
+            if (!PlaneCollection.Get(_planes).IsOwned(index) && _ads != null && _ads.IsRewardedReady)
+                PaperAnalytics.RewardedOffered(TryPlacement);
             RefreshGrid();
             RefreshDetail();
         }
@@ -151,7 +153,7 @@ namespace Game.UI
 
         private void SelectFocused()
         {
-            PlaneCollection.Get(_planes).Select(_focus);
+            if (PlaneCollection.Get(_planes).Select(_focus)) PaperAnalytics.PlaneSelected(_planes.Get(_focus));
             RefreshGrid();
             RefreshDetail();
         }

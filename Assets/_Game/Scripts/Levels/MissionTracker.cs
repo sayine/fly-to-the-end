@@ -111,6 +111,12 @@ namespace Game.Levels
             }
         }
 
+        /// <summary>Second chance after a failed flight: the mission goes on with what was achieved so far.</summary>
+        public void Resume()
+        {
+            if (Outcome == MissionOutcome.Failed) Outcome = MissionOutcome.Running;
+        }
+
         /// <summary>0..1 progress toward the pass condition, for the HUD.</summary>
         public float Progress01 => Type switch
         {

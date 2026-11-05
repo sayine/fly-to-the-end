@@ -10,6 +10,12 @@ namespace Template.Services.Analytics
         void SetUserProperty(string name, string value);
     }
 
+    /// <summary>
+    /// Registered (ServiceLocator) by a game that logs level_start / level_end itself with richer parameters;
+    /// the flow then skips its generic ones so nothing is counted twice.
+    /// </summary>
+    public interface ILevelAnalyticsOwner { }
+
     /// <summary>Standard event names (CLAUDE.md). Keep them stable across games for comparable dashboards.</summary>
     public static class AnalyticsEvents
     {

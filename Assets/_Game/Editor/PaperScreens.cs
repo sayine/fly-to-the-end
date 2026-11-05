@@ -25,8 +25,11 @@ namespace Game.Editor
         private static readonly Vector2 Top = new Vector2(0.5f, 1f);
         private static readonly string[] StatNames = { "SPEED", "AGILITY", "GLIDE", "LIFT", "STABILITY" };
 
+        private static LevelCatalog _levels;
+
         public static void Build(LevelCatalog levels, PlaneCatalog planes, bool force)
         {
+            _levels = levels;
             K.Prepare(force);
             UIBuilder.BuildAll(false); // UIRoot + any template screen added later
             Add<LoadingScreen>(BuildLoading);
@@ -153,6 +156,11 @@ namespace Game.Editor
             ((RectTransform)score.transform.parent).anchoredPosition = new Vector2(0f, -110f);
             var pause = K.IconBtn(c, "PauseButton", I.Pause, new Vector2(1f, 1f), 116f, K.Cream);
             ((RectTransform)pause.transform).anchoredPosition = new Vector2(-95f, -110f);
+            // Free Flight "Boost throw" offer, top-left (the top band never starts a throw).
+            var boost = K.Btn(c, "BoostButton", "BOOST", new Vector2(0f, 1f), new Vector2(270, 110), K.Sun, 44, out _, I.Video);
+            ((RectTransform)boost.transform).anchoredPosition = new Vector2(165f, -110f);
+            var boostView = s.gameObject.AddComponent<BoostThrowView>();
+            EditorUtil.Set(boostView, "_button", boost);
             EditorUtil.Set(s, "_scoreText", score);
             EditorUtil.Set(s, "_pauseButton", pause);
             K.SetString(s, "_scoreFormat", "{0:0.0}s");
@@ -208,9 +216,15 @@ namespace Game.Editor
             K.Fill(panel);
             var card = K.Card(panel, "Card", new Vector2(0.5f, 0.6f), new Vector2(820, 520));
             K.RibbonTitle(card, "Title", "CRASHED!", Top, 760, K.Coral, 84);
-            K.Txt(card, "Label", "AIRTIME", 40, Mid, new Vector2(600, 60), K.InkSoft).rectTransform.anchoredPosition = new Vector2(0f, 110f);
+            var label = K.Txt(card, "Label", "AIRTIME", 40, Mid, new Vector2(600, 60), K.InkSoft);
+            label.rectTransform.anchoredPosition = new Vector2(0f, 120f);
             var score = K.Txt(card, "Score", "0.0s", 170, Mid, new Vector2(760, 200), K.Ink);
-            score.rectTransform.anchoredPosition = new Vector2(0f, 0f);
+            score.rectTransform.anchoredPosition = new Vector2(0f, 10f);
+            var objective = K.Txt(card, "Objective", "", 38, Mid, new Vector2(720, 60), K.InkSoft);
+            objective.rectTransform.anchoredPosition = new Vector2(0f, -170f);
+            objective.enableAutoSizing = true;
+            objective.fontSizeMin = 24;
+            objective.fontSizeMax = 38;
             var best = K.Pill(card, "Best", "BEST 0.0s", Mid, new Vector2(380, 80), K.PaperDeep, K.Ink, 40, K.StarSprite, K.Star);
             ((RectTransform)best.transform.parent).anchoredPosition = new Vector2(0f, -170f);
             var newBest = K.Pill(card, "NewBest", "NEW BEST!", new Vector2(1f, 1f), new Vector2(300, 80), K.Sun.Face, K.Sun.Text, 42);
@@ -218,7 +232,7 @@ namespace Game.Editor
             nb.anchoredPosition = new Vector2(-60f, -110f);
             nb.localRotation = Quaternion.Euler(0f, 0f, -12f);
 
-            var cont = K.Btn(panel, "ContinueButton", "CONTINUE", new Vector2(0.5f, 0.365f), new Vector2(760, 180), K.Sun, 70, out _, I.Video);
+            var cont = K.Btn(panel, "ContinueButton", "SECOND CHANCE", new Vector2(0.5f, 0.365f), new Vector2(780, 180), K.Sun, 64, out _, I.Video);
             var retry = K.Btn(panel, "RetryButton", "RETRY", new Vector2(0.5f, 0.235f), new Vector2(620, 160), K.Coral, 66, out _, I.Retry);
             var menu = K.Btn(panel, "MenuButton", "MENU", new Vector2(0.5f, 0.12f), new Vector2(420, 120), K.Cream, 48, out _, I.Home);
             EditorUtil.Set(s, "_scoreText", score);
@@ -230,6 +244,11 @@ namespace Game.Editor
             K.SetString(s, "_scoreFormat", "{0:0.0}s");
             K.SetString(s, "_bestFormat", "BEST {0:0.0}s");
             K.SetFloat(s, "_scoreScale", 0.1f);
+            var extras = s.gameObject.AddComponent<GameOverExtras>();
+            EditorUtil.Set(extras, "_catalog", _levels);
+            EditorUtil.Set(extras, "_label", label);
+            EditorUtil.Set(extras, "_objective", objective);
+            EditorUtil.Set(extras, "_best", best.transform.parent.gameObject);
             K.Intro(s, panel, 0.9f);
         }
 
