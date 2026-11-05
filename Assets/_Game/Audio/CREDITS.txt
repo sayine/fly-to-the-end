@@ -1,0 +1,3 @@
+Sound effects (Audio/Sfx): Kenney (www.kenney.nl), CC0 1.0 — "Interface Sounds", "Impact Sounds", "Digital Audio".
+See Sfx/Kenney-License.txt. Credit is not required.
+Generated (Audio/Generated): whoosh, wind loop and music, synthesized by Assets/_Game/Editor/AudioBuilder.cs.

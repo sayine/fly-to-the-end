@@ -204,7 +204,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4111cbfe9c41f457e9901a9eee6ae8eb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _clickSfx: {fileID: 0}
+  _clickSfx: {fileID: 8300000, guid: ae2c9ab6ad60347d487de36504eb3a0b, type: 3}
 --- !u!1001 &355520147674159042
 PrefabInstance:
   m_ObjectHideFlags: 0

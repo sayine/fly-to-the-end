@@ -27,9 +27,12 @@ namespace Game.Editor
 
         private static LevelCatalog _levels;
 
-        public static void Build(LevelCatalog levels, PlaneCatalog planes, bool force)
+        private static Game.Audio.AudioConfig _audio;
+
+        public static void Build(LevelCatalog levels, PlaneCatalog planes, Game.Audio.AudioConfig audio, bool force)
         {
             _levels = levels;
+            _audio = audio;
             K.Prepare(force);
             UIBuilder.BuildAll(false); // UIRoot + any template screen added later
             Add<LoadingScreen>(BuildLoading);
@@ -42,6 +45,22 @@ namespace Game.Editor
             Add<LevelMapScreen>((s, c) => BuildLevelMap(s, c, levels));
             Add<HangarScreen>((s, c) => BuildHangar(s, c, planes, levels));
             Add<CheckInScreen>(BuildCheckIn);
+            SetClickSound();
+        }
+
+        /// <summary>Button click (ScreenManager on UIRoot plays it for every bound button).</summary>
+        private static void SetClickSound()
+        {
+            var root = PrefabUtility.LoadPrefabContents(UIBuilder.RootPath);
+            try
+            {
+                EditorUtil.Set(root.GetComponent<ScreenManager>(), "_clickSfx", _audio != null ? _audio.Click : null);
+                PrefabUtility.SaveAsPrefabAsset(root, UIBuilder.RootPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         private static void Add<T>(System.Action<T, RectTransform> build) where T : UIScreen =>
@@ -289,6 +308,7 @@ namespace Game.Editor
             so.FindProperty("_starOff").colorValue = new Color(1f, 1f, 1f, 0f); // the slot behind shows the empty star
             so.FindProperty("_scoreFormat").stringValue = "{0:0.0}s";
             so.FindProperty("_scoreScale").floatValue = 0.1f;
+            so.FindProperty("_starSfx").objectReferenceValue = _audio != null ? _audio.Star : null;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtil.Set(s, "_scoreText", score);
             EditorUtil.Set(s, "_newBestLabel", nb.gameObject);
@@ -532,6 +552,7 @@ namespace Game.Editor
             so.FindProperty("_rewardThumbnail").objectReferenceValue = thumb;
             so.FindProperty("_continueButton").objectReferenceValue = cont;
             so.FindProperty("_dayOn").colorValue = K.Mint.Face;
+            so.FindProperty("_sfx").objectReferenceValue = _audio != null ? _audio.CheckIn : null;
             so.FindProperty("_dayOff").colorValue = K.PaperDeep;
             var daysProp = so.FindProperty("_days");
             daysProp.arraySize = days.Length;
@@ -541,7 +562,7 @@ namespace Game.Editor
         }
 
         // ---------- Unlock toast (Game scene) ----------
-        public static UnlockToast BuildToast()
+        public static UnlockToast BuildToast(Game.Audio.AudioConfig audio)
         {
             var go = new GameObject("UnlockToast", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
             var canvas = go.GetComponent<Canvas>();
@@ -574,6 +595,7 @@ namespace Game.Editor
             EditorUtil.Set(toast, "_panel", panel);
             EditorUtil.Set(toast, "_name", name);
             EditorUtil.Set(toast, "_thumbnail", thumb);
+            if (audio != null) EditorUtil.Set(toast, "_sfx", audio.Unlock);
             return toast;
         }
     }

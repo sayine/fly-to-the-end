@@ -20,6 +20,7 @@ namespace Game.UI
         [SerializeField] private Button _continueButton;
         [SerializeField] private Color _dayOn = new Color(0.25f, 0.78f, 0.55f, 1f);
         [SerializeField] private Color _dayOff = new Color(1f, 1f, 1f, 0.15f);
+        [SerializeField] private AudioClip _sfx;
 
         public override bool IsOverlay => true;
 
@@ -29,6 +30,7 @@ namespace Game.UI
         public void Present(int daysPlayed, int nextRewardDay, PlaneConfig unlockedToday)
         {
             if (_title != null) _title.SetText("DAY {0}", daysPlayed);
+            if (_sfx != null && Template.Core.ServiceLocator.TryGet(out Template.Services.Audio.IAudioService audio)) audio.PlaySfx(_sfx, 0.8f);
             for (var i = 0; i < _days.Length; i++)
                 if (_days[i] != null) _days[i].color = i < daysPlayed ? _dayOn : _dayOff;
             if (_rewardThumbnail != null)

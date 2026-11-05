@@ -22,11 +22,15 @@ namespace Template.UI.Screens
         [SerializeField] private float _scoreScale = 1f;
         [SerializeField] private Color _starOn = new Color(1f, 0.82f, 0.25f, 1f);
         [SerializeField] private Color _starOff = new Color(1f, 1f, 1f, 0.18f);
+        [Tooltip("Played as each star pops, a little higher each time (optional).")]
+        [SerializeField] private AudioClip _starSfx;
 
         private const float StarDelay = 0.35f;
         private const float StarPop = 0.25f;
 
         private int _earned;
+        private int _popped;
+        private Template.Services.Audio.IAudioService _audio;
         private float _shownAt;
 
         protected override void OnInit()
@@ -34,6 +38,7 @@ namespace Template.UI.Screens
             Bind(_nextButton, () => Choose(UIRequest.Next));
             Bind(_retryButton, () => Choose(UIRequest.Retry));
             Bind(_menuButton, () => Choose(UIRequest.Menu));
+            ServiceLocator.TryGet(out _audio);
             EventBus<LevelCompletedEvent>.Subscribe(OnLevelCompleted);
         }
 
@@ -49,6 +54,7 @@ namespace Template.UI.Screens
         protected override void OnShow()
         {
             _shownAt = Time.unscaledTime;
+            _popped = 0;
             SetButtonsInteractable(true);
             for (var i = 0; i < _stars.Length; i++)
             {
@@ -68,6 +74,11 @@ namespace Template.UI.Screens
                 var local = (t - StarDelay * (i + 1)) / StarPop;
                 if (local < 0f) continue;
                 _stars[i].color = _starOn;
+                if (i >= _popped)
+                {
+                    _popped = i + 1;
+                    if (_starSfx != null) _audio?.PlaySfxAtPitch(_starSfx, 0.8f, 1f + 0.12f * i);
+                }
                 // Overshoot pop: 0 → 1.3 → 1.
                 var s = local >= 1f ? 1f : Mathf.Sin(Mathf.Clamp01(local) * Mathf.PI) * 0.3f + Mathf.Clamp01(local);
                 _stars[i].rectTransform.localScale = Vector3.one * s;

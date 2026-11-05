@@ -17,6 +17,7 @@ namespace Game.UI
         [SerializeField] private TMP_Text _name;
         [SerializeField] private Image _thumbnail;
         [SerializeField, Min(0.5f)] private float _duration = 3f;
+        [SerializeField] private AudioClip _sfx;
 
         private readonly Queue<PlaneConfig> _queue = new Queue<PlaneConfig>();
         private float _shownAt = -1f;
@@ -42,6 +43,7 @@ namespace Game.UI
             _thumbnail.sprite = plane.Thumbnail;
             _canvas.enabled = true;
             _shownAt = Time.unscaledTime;
+            if (_sfx != null && Template.Core.ServiceLocator.TryGet(out Template.Services.Audio.IAudioService audio)) audio.PlaySfx(_sfx, 0.8f);
         }
 
         private void Update()

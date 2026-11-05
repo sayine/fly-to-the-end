@@ -30,6 +30,11 @@ namespace Game.Levels
         private Func<int, bool> _onRing;
         private Action _onRoom;
 
+        /// <summary>A gem was picked up (count so far this run).</summary>
+        public event Action<int> GemCollected;
+        /// <summary>The next ring was passed (rings passed so far this run).</summary>
+        public event Action<int> RingPassed;
+
         public LevelCatalog Catalog => _catalog;
         public int LevelIndex { get; private set; } = GameProgress.FreeFlight;
         public LevelConfig Level { get; private set; }
@@ -118,7 +123,9 @@ namespace Game.Levels
 
         private void OnGem(Gem gem)
         {
-            Tracker?.CollectGem();
+            if (Tracker == null) return;
+            Tracker.CollectGem();
+            GemCollected?.Invoke(Tracker.Gems);
         }
 
         private bool OnRing(int index)
@@ -126,6 +133,7 @@ namespace Game.Levels
             if (Tracker == null || !Tracker.PassRing(index)) return false;
             _rings[index].SetState(Ring.State.Passed);
             if (index + 1 < Tracker.RingTotal) _rings[index + 1].SetState(Ring.State.Next);
+            RingPassed?.Invoke(Tracker.NextRing);
             return true;
         }
 

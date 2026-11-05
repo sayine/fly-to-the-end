@@ -23,12 +23,14 @@ namespace Game.Editor
             public string[] Parts;   // greybox objects it replaces (by name, under Props)
             public float Yaw;        // degrees around Y applied to the model's native orientation
             public bool FitLargest;  // flat targets (blades, window, hood): fit the two largest sides, ignore the thin one
+            public float Tilt;       // degrees around X before the yaw (stands up a model that was generated lying down)
             public Entry(string file, float yaw, params string[] parts)
             {
                 File = file;
                 Yaw = yaw;
                 Parts = parts;
                 FitLargest = false;
+                Tilt = 0f;
             }
 
             public static Entry Flat(string file, float yaw, params string[] parts) =>
@@ -99,8 +101,9 @@ namespace Game.Editor
             new Entry("FloorFan_Blades", 180f, "Fan2_Rotor"),
             new Entry("FloorFan_Body", 180f, "Fan3_Body"),
             new Entry("FloorFan_Blades", 180f, "Fan3_Rotor"),
-            new Entry("Radiator", -90f, "Radiator"),
-            new Entry("Radiator", -90f, "Radiator2"),
+            // Radiator.fbx was generated lying on its back: stand it up first.
+            new Entry("Radiator", -90f, "Radiator") { Tilt = -90f },
+            new Entry("Radiator", -90f, "Radiator2") { Tilt = -90f },
             new Entry("DeskFan", 0f, "DeskFan_Study"),
             new Entry("DeskFan", 0f, "DeskFan_Bed2"),
             new Entry("CeilingFan_Base", 0f, "CeilingFan_Base"),
@@ -126,7 +129,7 @@ namespace Game.Editor
 
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(model, first.parent);
                 instance.name = entry.Parts[0] + "_Model";
-                Fit(instance.transform, target, entry.Yaw, entry.FitLargest);
+                Fit(instance.transform, target, entry.Yaw, entry.FitLargest, entry.Tilt);
                 ClampColliders(root, entry.Parts, RendererBounds(instance.transform));
                 if (System.Array.IndexOf(SurfaceModels, entry.File) >= 0) ShapeToSurface(first, instance);
                 var material = MaterialFor(entry.File);
@@ -165,10 +168,10 @@ namespace Game.Editor
         }
 
         /// <summary>Uniform scale to fit inside target (after yaw), bottom-centre aligned.</summary>
-        private static void Fit(Transform model, Bounds target, float yaw, bool fitLargest = false)
+        private static void Fit(Transform model, Bounds target, float yaw, bool fitLargest = false, float tilt = 0f)
         {
             model.localScale = Vector3.one;
-            model.rotation = Quaternion.Euler(0f, yaw, 0f);
+            model.rotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(tilt, 0f, 0f);
             model.position = Vector3.zero;
             var b = RendererBounds(model);
             var rx = target.size.x / b.size.x;

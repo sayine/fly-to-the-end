@@ -45,6 +45,7 @@ namespace Game.Editor
         private static bool _regenerateTextures;
         private static Game.Levels.LevelCatalog _catalog;
         private static Game.Planes.PlaneCatalog _planes;
+        private static Game.Audio.AudioConfig _audio;
 
         [GameContentBuilder]
         public static void Build(bool force)
@@ -55,7 +56,9 @@ namespace Game.Editor
             AssetDatabase.SaveAssets();
             _catalog = LevelBuilder.Build();
             _planes = PlaneBuilder.Build(force);
-            PaperScreens.Build(_catalog, _planes, force);
+            AppIconBuilder.Build(false); // Tools/Game/Build App Icon to re-render (needs a GPU)
+            _audio = AudioBuilder.Build(false); // synthesized clips are deterministic: delete Audio/Generated to remake them
+            PaperScreens.Build(_catalog, _planes, _audio, force);
             CreateMaterials();
             var mesh = BuildMesh();
             BuildPlanePrefab(mesh, force);
@@ -240,7 +243,8 @@ namespace Game.Editor
             var mission = MissionSceneBuilder.Build(_catalog, plane, launchPoint, pad.GetComponent<Collider>(), Mat("Prop_B"), hint.transform);
             EditorUtil.Set(game, "_mission", mission);
             EditorUtil.Set(game, "_planes", _planes);
-            EditorUtil.Set(game, "_unlockToast", PaperScreens.BuildToast());
+            EditorUtil.Set(game, "_unlockToast", PaperScreens.BuildToast(_audio));
+            AddAudio(plane, mission);
 
             var panel = new GameObject("DevTuningPanel").AddComponent<DevTuningPanel>();
             var panelSo = new SerializedObject(panel);
@@ -292,8 +296,20 @@ namespace Game.Editor
             flyerSo.FindProperty("_size").vector2Value = new Vector2(6f, 7f);
             flyerSo.ApplyModifiedPropertiesWithoutUndo();
 
+            AddAudio(null, null);
             EditorSceneManager.SaveScene(scene, SceneGenerator.MenuPath);
             Log.Info($"Saved {SceneGenerator.MenuPath} (Paper Plane menu backdrop)");
+        }
+
+        /// <summary>Scene sound: music everywhere; plane / mission sounds and the wind loop in the Game scene.</summary>
+        private static void AddAudio(PaperPlane plane, Game.Levels.MissionDirector mission)
+        {
+            var go = new GameObject("Audio", typeof(AudioSource));
+            var audio = go.AddComponent<Game.Audio.PaperAudio>();
+            EditorUtil.Set(audio, "_config", _audio);
+            if (plane != null) EditorUtil.Set(audio, "_plane", plane);
+            if (mission != null) EditorUtil.Set(audio, "_mission", mission);
+            if (plane != null) EditorUtil.Set(audio, "_windSource", go.GetComponent<AudioSource>());
         }
 
         private static Camera CreateCamera()

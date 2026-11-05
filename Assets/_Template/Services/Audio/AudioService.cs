@@ -52,6 +52,15 @@ namespace Template.Services.Audio
             source.PlayOneShot(clip, volume);
         }
 
+        public void PlaySfxAtPitch(AudioClip clip, float volume, float pitch)
+        {
+            if (clip == null || !SoundEnabled) return;
+            var source = _sfx[_next];
+            _next = (_next + 1) % SfxVoices;
+            source.pitch = pitch;
+            source.PlayOneShot(clip, volume);
+        }
+
         public void PlayMusic(AudioClip clip, float volume = 0.6f)
         {
             if (clip == null) return;
@@ -85,6 +94,7 @@ namespace Template.Services.Audio
     {
         public bool SoundEnabled { get; set; } = true;
         public void PlaySfx(AudioClip clip, float volume = 1f, float pitchVariance = 0f) => Debug.Log($"[Audio:Mock] sfx {(clip ? clip.name : "null")}");
+        public void PlaySfxAtPitch(AudioClip clip, float volume, float pitch) => Debug.Log($"[Audio:Mock] sfx {(clip ? clip.name : "null")} pitch {pitch:0.00}");
         public void PlayMusic(AudioClip clip, float volume = 0.6f) => Debug.Log($"[Audio:Mock] music {(clip ? clip.name : "null")}");
         public void StopMusic() => Debug.Log("[Audio:Mock] stop music");
     }

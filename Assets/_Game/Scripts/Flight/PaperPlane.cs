@@ -34,6 +34,9 @@ namespace Game.Flight
         private float _graceLeft;
         private float _invulnerableUntil = -1f;
 
+        /// <summary>Raised when the plane is thrown (or put back in the air by a second chance).</summary>
+        public event Action Launched;
+
         /// <summary>Raised once per flight, with the collider that was hit (null for out-of-bounds).</summary>
         public event Action<Collider> Crashed;
 
@@ -105,6 +108,7 @@ namespace Game.Flight
                 Physics.IgnoreCollision(_collider, _ignored, true);
             }
             CurrentPhase = Phase.Flying;
+            Launched?.Invoke();
         }
 
         /// <summary>Second chance: back in the air at a pose with a velocity; collisions don't crash for a while.</summary>

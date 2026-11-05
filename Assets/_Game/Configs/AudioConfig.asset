@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c722ee56806b342fc9f6216c897ae9b5, type: 3}
+  m_Name: AudioConfig
+  m_EditorClassIdentifier: 
+  _music: {fileID: 8300000, guid: b9cbc43ae5500472e9e3ade0ecca82e2, type: 3}
+  _musicVolume: 0.4
+  _throw: {fileID: 8300000, guid: bcbc3b8a75fce4a9294da3ce79562f98, type: 3}
+  _throwVolume: 0.7
+  _wind: {fileID: 8300000, guid: 30d6b7d2d5f0e47b48c2a706325b2067, type: 3}
+  _windMaxVolume: 0.35
+  _windSpeedRange: {x: 2, y: 9}
+  _windZoneBoost: 0.04
+  _crash: {fileID: 8300000, guid: 942cfba8051f0465c9d7a64a3cdeabd0, type: 3}
+  _crashPaper: {fileID: 8300000, guid: e3ac93917751e4833bf122d3fe5aa6f8, type: 3}
+  _crashVolume: 0.8
+  _land: {fileID: 8300000, guid: 75fd2b5555e754212a868f66e58ae26b, type: 3}
+  _respawn: {fileID: 8300000, guid: d3584949629734951b3b4cc2a16b060a, type: 3}
+  _gem: {fileID: 8300000, guid: f59a56f1bd1e84550b23c3c624dd4733, type: 3}
+  _ring: {fileID: 8300000, guid: 7eb0a256106eb469b9933e30e055d397, type: 3}
+  _streakPitch: 0.04
+  _click: {fileID: 8300000, guid: ae2c9ab6ad60347d487de36504eb3a0b, type: 3}
+  _star: {fileID: 8300000, guid: 361fab7509ef348be943193d11bc6119, type: 3}
+  _levelComplete: {fileID: 8300000, guid: f955425c460f54be588560a927cc6493, type: 3}
+  _gameOver: {fileID: 8300000, guid: 3a04388c7879b460a950015e2c751c21, type: 3}
+  _unlock: {fileID: 8300000, guid: 13254496cf960446c8a3282429a0a3b3, type: 3}
+  _checkIn: {fileID: 8300000, guid: 88bdfbe4a453642028998f049f0adc65, type: 3}
