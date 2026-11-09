@@ -7,17 +7,20 @@ namespace Game
     /// <summary>
     /// Behind-and-above chase camera for the paper plane (GameConfig "Chase camera"). Follows the flat
     /// flight heading (not the nose), so pitch wobble and stalls don't swing the view. FOV rises with speed,
-    /// gentle roll with bank, and the position is kept inside the rooms (a union of boxes: rooms, hallway) so it
-    /// never clips through walls but can follow the plane through doorways.
+    /// gentle roll with bank. Walls and furniture never come between the camera and the plane: a sphere cast from the
+    /// plane back to the camera's ideal spot pulls the camera in front of anything in the way (at once, so it never
+    /// clips), and it eases back out when the way is clear. No room boxes, so nothing snaps at doorways.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public sealed class ChaseCamera : MonoBehaviour
     {
         [SerializeField] private GameConfig _config;
         [SerializeField] private PaperPlane _plane;
-        [Tooltip("Interiors (world space). The camera stays inside one of them, minus ChaseWallMargin.")]
-        [SerializeField] private Bounds[] _areas = { new Bounds(Vector3.zero, new Vector3(14f, 5f, 20f)) };
+        [Tooltip("Camera collision radius (m): how far it stays from walls and furniture.")]
+        [SerializeField, Min(0.05f)] private float _radius = 0.35f;
         [SerializeField, HideInInspector] private Camera _camera;
+
+        private readonly RaycastHit[] _hits = new RaycastHit[8];
 
         private Vector3 _heading = Vector3.forward;
         private float _roll;
@@ -52,8 +55,9 @@ namespace Game
                 _heading = Vector3.Slerp(_heading, flat.normalized, MathExtensions.SmoothingFactor(_config.ChaseHeadingSharpness, dt));
 
             var target = _plane.transform.position;
-            transform.position = Vector3.Lerp(transform.position, DesiredPosition(target),
+            var eased = Vector3.Lerp(transform.position, DesiredPosition(target),
                 MathExtensions.SmoothingFactor(_config.ChasePositionSharpness, dt));
+            transform.position = Unblocked(target, eased); // never ease through a wall
 
             var targetRoll = flying ? -_plane.State.Bank * _config.ChaseRollFactor : 0f;
             _roll = Mathf.Lerp(_roll, targetRoll, MathExtensions.SmoothingFactor(_config.ChaseRotationSharpness, dt));
@@ -65,27 +69,26 @@ namespace Game
                 MathExtensions.SmoothingFactor(_config.ChasePositionSharpness, dt));
         }
 
-        private Vector3 DesiredPosition(Vector3 target)
-        {
-            var p = target - _heading * _config.ChaseDistance + Vector3.up * _config.ChaseHeight;
-            if (_areas == null || _areas.Length == 0) return p;
-            var m = _config.ChaseWallMargin;
-            // Fine where it is if it's inside any area (e.g. still in the room while the plane enters the hallway).
-            for (var i = 0; i < _areas.Length; i++)
-                if (Inside(_areas[i], p, m)) return p;
-            // Otherwise clamp into the area that holds the plane (or the first one).
-            var area = _areas[0];
-            for (var i = 0; i < _areas.Length; i++)
-                if (Inside(_areas[i], target, 0f)) { area = _areas[i]; break; }
-            var min = area.min + new Vector3(m, m, m);
-            var max = area.max - new Vector3(m, m, m);
-            return new Vector3(Mathf.Clamp(p.x, min.x, max.x), Mathf.Clamp(p.y, min.y, max.y), Mathf.Clamp(p.z, min.z, max.z));
-        }
+        private Vector3 DesiredPosition(Vector3 target) =>
+            Unblocked(target, target - _heading * _config.ChaseDistance + Vector3.up * _config.ChaseHeight);
 
-        private static bool Inside(Bounds b, Vector3 p, float margin) =>
-            p.x > b.min.x + margin && p.x < b.max.x - margin &&
-            p.y > b.min.y + margin && p.y < b.max.y - margin &&
-            p.z > b.min.z + margin && p.z < b.max.z - margin;
+        /// <summary>The point on the way from the plane to `wanted` just in front of the first wall or prop.</summary>
+        private Vector3 Unblocked(Vector3 target, Vector3 wanted)
+        {
+            var offset = wanted - target;
+            var distance = offset.magnitude;
+            if (distance < 1e-3f) return wanted;
+            var direction = offset / distance;
+            var count = Physics.SphereCastNonAlloc(target, _radius, direction, _hits, distance, ~0, QueryTriggerInteraction.Ignore);
+            var nearest = distance;
+            for (var i = 0; i < count; i++)
+            {
+                var hit = _hits[i];
+                if (hit.rigidbody == _plane.Body || hit.distance <= 0f) continue; // the plane itself / starting overlaps
+                if (hit.distance < nearest) nearest = hit.distance;
+            }
+            return target + direction * Mathf.Max(0.2f, nearest - 0.05f);
+        }
 
         private Quaternion DesiredRotation(Vector3 target, Vector3 from)
         {

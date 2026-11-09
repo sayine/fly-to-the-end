@@ -40,47 +40,57 @@ namespace Game.Editor
             WindVolume Z(string name, WindKind kind, Vector3 origin, Vector3 dir, float length, float r0, float r1, float scale, bool ring) =>
                 Zone(root, name, kind, origin, dir, length, r0, r1, scale, config, particleMat, ring ? markerMat : null);
 
-            // Living room: floor fan by the left wall, tilted ~8° up, blowing +X across the launch path.
-            var fanHead = Fan(root, "Fan", new Vector3(living.min.x + 1.3f, 0f, -14.5f), Vector3.right, propMat);
-            Z("Wind_Fan", WindKind.Fan, fanHead, new Vector3(1f, 0.14f, 0f).normalized, 15f, 0.3f * S, 2.3f, 1f, false);
-            Radiator(root, "Radiator", new Vector3(living.min.x + 0.15f * S * 0.5f + 0.02f, 0f, -19.5f), propMat);
-            Z("Wind_Thermal", WindKind.Thermal, new Vector3(living.min.x + 1.1f, 0.05f, -19.5f), Vector3.up, living.max.y - 0.6f, 1.4f, 1.8f, 1f, true);
-            Box(root, "CeilingVent", new Vector3(4.5f, living.max.y - 0.05f, -7.5f), new Vector3(0.9f, 0.1f, 0.6f) * S, propMat);
-            Z("Wind_Downdraft", WindKind.Downdraft, new Vector3(4.5f, living.max.y - 0.12f, -7.5f), Vector3.down, living.max.y - 0.15f, 1f, 1.8f, 1f, true);
+            // Plan positions (z of the fan, vent, …) are mapped into the real rooms with RoomLayout.ToWorld;
+            // offsets from walls use the real room boxes.
+            float Z_(float x, float z) => RoomLayout.ToWorld(x, 0f, z).z;
 
-            // Hallway: two moderate floor fans carrying the plane north (entrance, and past the side doors).
-            var hallHead = Fan(root, "Fan2", new Vector3(hall.min.x + 0.75f, 0f, hall.min.z + 1.4f), Vector3.forward, propMat);
-            Z("Wind_HallFan", WindKind.Fan, hallHead, new Vector3(0.18f, 0.12f, 1f).normalized, 13f, 0.8f, 2.6f, 0.55f, false);
-            var hallHead2 = Fan(root, "Fan3", new Vector3(hall.max.x - 0.75f, 0f, 20.5f), Vector3.forward, propMat);
-            Z("Wind_HallFan2", WindKind.Fan, hallHead2, new Vector3(-0.18f, 0.12f, 1f).normalized, 13f, 0.8f, 2.6f, 0.5f, false);
+            // Living room: floor fan by the left wall, tilted ~8° up, blowing +X across the launch path.
+            var fanHead = Fan(root, "Fan", new Vector3(living.min.x + 1.3f, 0f, Z_(-12f, -14.5f)), Vector3.right, propMat);
+            Z("Wind_Fan", WindKind.Fan, fanHead, new Vector3(1f, 0.14f, 0f).normalized, 21f, 0.3f * S, 2.6f, 1f, false); // across the wider room
+            var radiatorZ = Z_(-12f, -19.5f);
+            Radiator(root, "Radiator", new Vector3(living.min.x + 0.15f * S * 0.5f + 0.02f, 0f, radiatorZ), propMat);
+            Z("Wind_Thermal", WindKind.Thermal, new Vector3(living.min.x + 1.1f, 0.05f, radiatorZ), Vector3.up, living.max.y - 0.6f, 1.4f, 1.8f, 1f, true);
+            var vent = RoomLayout.ToWorld(4.5f, 0f, -7.5f);
+            Box(root, "CeilingVent", new Vector3(vent.x, living.max.y - 0.05f, vent.z), new Vector3(0.9f, 0.1f, 0.6f) * S, propMat);
+            Z("Wind_Downdraft", WindKind.Downdraft, new Vector3(vent.x, living.max.y - 0.12f, vent.z), Vector3.down, living.max.y - 0.15f, 1f, 1.8f, 1f, true);
+
+            // Hallway: two moderate floor fans carrying the plane north (entrance, and past the side doors),
+            // angled inward so their air meets the middle of the wide hallway.
+            var hallHead = Fan(root, "Fan2", new Vector3(hall.min.x + 1.6f, 0f, hall.min.z + 1.8f), Vector3.forward, propMat);
+            Z("Wind_HallFan", WindKind.Fan, hallHead, new Vector3(0.3f, 0.1f, 1f).normalized, 18f, 0.8f, 3.2f, 0.6f, false);
+            var hallHead2 = Fan(root, "Fan3", new Vector3(hall.max.x - 1.6f, 0f, Z_(0f, 20.5f) + 3f), Vector3.forward, propMat);
+            Z("Wind_HallFan2", WindKind.Fan, hallHead2, new Vector3(-0.3f, 0.1f, 1f).normalized, 18f, 0.8f, 3.2f, 0.55f, false);
 
             // Kitchen: heat rising off the stove into the hood, cold air spilling down in front of the fridge.
             var stove = RoomLayout.StoveTop;
-            Z("Wind_Stove", WindKind.Thermal, stove + Vector3.up * 0.05f, Vector3.up, 6f - stove.y - 0.3f, 0.8f, 1.3f, 0.9f, false);
+            Z("Wind_Stove", WindKind.Thermal, stove + Vector3.up * 0.05f, Vector3.up, RoomLayout.CeilingHeight - stove.y - 0.3f, 0.8f, 1.3f, 0.9f, false);
             var fridge = RoomLayout.FridgeFront;
             Z("Wind_Fridge", WindKind.Downdraft, new Vector3(fridge.x, 3.2f, fridge.z), Vector3.down, 3.15f, 0.6f, 1.4f, 0.7f, true);
 
             // Study: desk fan blowing into the room, warm air rising over the reading lamp.
             var studyFan = DeskFan(root, "DeskFan_Study", RoomLayout.StudyDeskTop, Vector3.back, propMat);
             Z("Wind_StudyFan", WindKind.Fan, studyFan, new Vector3(0f, 0.08f, -1f).normalized, 8f, 0.3f, 1.6f, 0.6f, false);
-            Z("Wind_LampThermal", WindKind.Thermal, RoomLayout.StudyLamp, Vector3.up, 6f - RoomLayout.StudyLamp.y - 0.2f, 0.5f, 1f, 0.7f, false);
+            Z("Wind_LampThermal", WindKind.Thermal, RoomLayout.StudyLamp, Vector3.up, RoomLayout.CeilingHeight - RoomLayout.StudyLamp.y - 0.2f, 0.5f, 1f, 0.7f, false);
 
             // Bedroom 1: ceiling fan (solid blades: a crash hazard) pushing down, and a gusting open window.
-            var fanCentre = new Vector3(-11f, b1.max.y, 50f);
+            var fanPlan = RoomLayout.ToWorld(-11f, 0f, 50f);
+            var fanCentre = new Vector3(fanPlan.x, b1.max.y, fanPlan.z);
             Box(root, "CeilingFan_Base", fanCentre + Vector3.down * 0.3f * S, new Vector3(0.25f, 0.6f, 0.25f) * S, propMat);
             Box(root, "CeilingFan_Rotor", fanCentre + Vector3.down * 0.62f * S, new Vector3(1.3f, 0.06f, 1.3f) * S, propMat);
             Z("Wind_CeilingFan", WindKind.Downdraft, fanCentre + Vector3.down * 0.7f * S, Vector3.down, b1.max.y - 0.7f * S - 0.1f, 1.4f, 2.2f, 1f, true);
-            var window = Box(root, "Window", new Vector3(b1.min.x + 0.06f, 1.6f * S * 0.5f + 0.9f * S, 53f), new Vector3(0.1f, 1.6f, 1.0f) * S, propMat);
+            var windowZ = Z_(-12f, 53f);
+            var window = Box(root, "Window", new Vector3(b1.min.x + 0.06f, 1.6f * S * 0.5f + 0.9f * S, windowZ), new Vector3(0.1f, 1.6f, 1.0f) * S, propMat);
             Object.DestroyImmediate(window.GetComponent<Collider>()); // flat on the wall
-            var gust = Z("Wind_WindowGust", WindKind.Fan, new Vector3(b1.min.x + 0.3f, window.transform.position.y, 53f), Vector3.right, 12f, 1f, 2.4f, 0.9f, false);
+            var gust = Z("Wind_WindowGust", WindKind.Fan, new Vector3(b1.min.x + 0.3f, window.transform.position.y, windowZ), Vector3.right, 14f, 1f, 2.4f, 0.9f, false);
             var gustSo = new SerializedObject(gust);
             gustSo.FindProperty("_gustPeriod").floatValue = 6f;
             gustSo.FindProperty("_gustOnFraction").floatValue = 0.4f;
             gustSo.ApplyModifiedPropertiesWithoutUndo();
 
             // Bedroom 2: radiator thermal on the west wall, desk fan on the desk.
-            Radiator(root, "Radiator2", new Vector3(b2.min.x + 0.15f * S * 0.5f + 0.02f, 0f, 49f), propMat);
-            Z("Wind_Thermal2", WindKind.Thermal, new Vector3(b2.min.x + 1.1f, 0.05f, 49f), Vector3.up, b2.max.y - 0.6f, 1.3f, 1.7f, 1f, true);
+            var radiator2Z = Z_(10f, 49f);
+            Radiator(root, "Radiator2", new Vector3(b2.min.x + 0.15f * S * 0.5f + 0.02f, 0f, radiator2Z), propMat);
+            Z("Wind_Thermal2", WindKind.Thermal, new Vector3(b2.min.x + 1.1f, 0.05f, radiator2Z), Vector3.up, b2.max.y - 0.6f, 1.3f, 1.7f, 1f, true);
             var bedFan = DeskFan(root, "DeskFan_Bed2", RoomLayout.Bed2DeskTop, Vector3.back, propMat);
             Z("Wind_Bed2Fan", WindKind.Fan, bedFan, new Vector3(0f, 0.08f, -1f).normalized, 8f, 0.3f, 1.6f, 0.6f, false);
             return root;

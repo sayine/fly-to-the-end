@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Hallway
   _mission: 5
   _objective: Turn left into the kitchen
-  _start: {x: 0, y: 2.7, z: 3.5}
+  _start: {x: 0, y: 2.7, z: 4.257576}
   _startYaw: 0
   _bookStack: 1
   _surfaceHeight: 0
@@ -29,5 +29,5 @@ MonoBehaviour:
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}
   _targetRoom:
-    m_Center: {x: -14, y: 3, z: 17}
-    m_Extent: {x: 10, y: 3, z: 11}
+    m_Center: {x: -19, y: 3.5, z: 22}
+    m_Extent: {x: 13, y: 3.5, z: 14}

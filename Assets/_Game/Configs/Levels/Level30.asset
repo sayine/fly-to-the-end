@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Kitchen
   _mission: 4
   _objective: 'Kitchen, hallway, study: through every ring'
-  _start: {x: -12.9, y: 2.44, z: 18}
+  _start: {x: -17.57, y: 2.44, z: 23.272728}
   _startYaw: 90
   _bookStack: 1
   _surfaceHeight: 1.4399999
@@ -26,16 +26,16 @@ MonoBehaviour:
   - 6
   _gems: []
   _rings:
-  - Position: {x: -8, y: 2.4, z: 17}
+  - Position: {x: -11.2, y: 2.4, z: 22}
     Yaw: 90
     Radius: 1.3
-  - Position: {x: 0, y: 2.4, z: 17}
+  - Position: {x: 0, y: 2.4, z: 21.848486}
     Yaw: 90
     Radius: 1.3
-  - Position: {x: 7, y: 2.5, z: 17}
+  - Position: {x: 10.125, y: 2.5, z: 22}
     Yaw: 90
     Radius: 1.3
-  - Position: {x: 12, y: 2.7, z: 19.5}
+  - Position: {x: 17, y: 2.7, z: 25.055555}
     Yaw: 60
     Radius: 1.3
   _landCenter: {x: 0, y: 0, z: 0}

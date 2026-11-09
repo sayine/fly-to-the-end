@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Bedroom
   _mission: 2
   _objective: Land on the bed (mind the ceiling fan)
-  _start: {x: -6, y: 2.7, z: 37}
+  _start: {x: -8.4, y: 2.7, z: 48.2}
   _startYaw: 0
   _bookStack: 1
   _surfaceHeight: 0
@@ -26,8 +26,8 @@ MonoBehaviour:
   - 0.45
   _gems: []
   _rings: []
-  _landCenter: {x: -11, y: 0.46, z: 56.9}
-  _landSize: {x: 2, y: 2.4}
+  _landCenter: {x: -14.094998, y: 0.46, z: 74.933334}
+  _landSize: {x: 1.5, y: 1.5}
   _targetRoom:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}

@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Living room
   _mission: 5
   _objective: From the shelf all the way to the bedroom
-  _start: {x: 0, y: 3.12, z: -21.980001}
+  _start: {x: 0, y: 3.12, z: -29.68}
   _startYaw: 0
   _bookStack: 0
   _surfaceHeight: 0
@@ -29,5 +29,5 @@ MonoBehaviour:
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}
   _targetRoom:
-    m_Center: {x: -11, y: 3, z: 50}
-    m_Extent: {x: 9, y: 3, z: 9}
+    m_Center: {x: -14.5, y: 3.5, z: 66}
+    m_Extent: {x: 13.5, y: 3.5, z: 12}

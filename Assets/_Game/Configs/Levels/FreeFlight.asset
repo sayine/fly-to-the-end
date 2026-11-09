@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Living room
   _mission: 0
   _objective: 
-  _start: {x: 0, y: 3.12, z: -21.980001}
+  _start: {x: 0, y: 3.12, z: -29.68}
   _startYaw: 0
   _bookStack: 0
   _surfaceHeight: 0

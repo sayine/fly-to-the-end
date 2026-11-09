@@ -223,11 +223,6 @@ namespace Game.Editor
             EditorUtil.Set(chase, "_config", AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath));
             EditorUtil.Set(chase, "_plane", plane);
             EditorUtil.Set(chase, "_camera", cam);
-            var chaseSo = new SerializedObject(chase);
-            var areas = chaseSo.FindProperty("_areas");
-            areas.arraySize = RoomLayout.Areas.Length;
-            for (var i = 0; i < RoomLayout.Areas.Length; i++) areas.GetArrayElementAtIndex(i).boundsValue = RoomLayout.Areas[i];
-            chaseSo.ApplyModifiedPropertiesWithoutUndo();
 
             var game = new GameObject("PaperPlaneGame").AddComponent<PaperPlaneGame>();
             EditorUtil.Set(game, "_gameConfig", AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath));
@@ -293,7 +288,7 @@ namespace Game.Editor
             backdropSo.ApplyModifiedPropertiesWithoutUndo();
             var flyerSo = new SerializedObject(flyer.GetComponent<MenuFlyer>());
             flyerSo.FindProperty("_centre").vector3Value = new Vector3(centre.x, 3.2f, centre.z);
-            flyerSo.FindProperty("_size").vector2Value = new Vector2(6f, 7f);
+            flyerSo.FindProperty("_size").vector2Value = new Vector2(8.5f, 9.5f); // the bigger living room
             flyerSo.ApplyModifiedPropertiesWithoutUndo();
 
             AddAudio(null, null);

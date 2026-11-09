@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Kitchen
   _mission: 1
   _objective: 'Ride the warm air over the stove: stay up 20 s'
-  _start: {x: -5.6, y: 2.7, z: 17}
+  _start: {x: -8.08, y: 2.7, z: 22}
   _startYaw: 270
   _bookStack: 1
   _surfaceHeight: 0

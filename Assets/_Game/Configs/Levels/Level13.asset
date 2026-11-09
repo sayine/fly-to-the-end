@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Study
   _mission: 3
   _objective: Collect the gems around the study
-  _start: {x: 5.6, y: 2.7, z: 17}
+  _start: {x: 8.2, y: 2.7, z: 22}
   _startYaw: 90
   _bookStack: 1
   _surfaceHeight: 0
@@ -25,13 +25,13 @@ MonoBehaviour:
   - 0.8
   - 1
   _gems:
-  - {x: 8.5, y: 2.6, z: 17}
-  - {x: 11.5, y: 2.5, z: 15.5}
-  - {x: 14.5, y: 2.4, z: 14.5}
-  - {x: 16.5, y: 2.5, z: 16.5}
-  - {x: 15.5, y: 2.6, z: 19.5}
-  - {x: 12.5, y: 2.7, z: 21}
-  - {x: 9.5, y: 2.6, z: 20.5}
+  - {x: 12.1875, y: 2.6, z: 22}
+  - {x: 16.3125, y: 2.5, z: 20.166666}
+  - {x: 20.4375, y: 2.4, z: 18.944445}
+  - {x: 23.1875, y: 2.5, z: 21.38889}
+  - {x: 21.8125, y: 2.6, z: 25.055555}
+  - {x: 17.6875, y: 2.7, z: 26.88889}
+  - {x: 13.5625, y: 2.6, z: 26.277777}
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}

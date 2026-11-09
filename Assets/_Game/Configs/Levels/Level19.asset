@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Kitchen
   _mission: 3
   _objective: Ride the stove's warm air for the gems
-  _start: {x: -5.6, y: 2.7, z: 17}
+  _start: {x: -8.08, y: 2.7, z: 22}
   _startYaw: 270
   _bookStack: 1
   _surfaceHeight: 0
@@ -25,13 +25,13 @@ MonoBehaviour:
   - 0.8
   - 1
   _gems:
-  - {x: -8, y: 2.8, z: 18.5}
-  - {x: -11, y: 3, z: 22}
-  - {x: -14, y: 3.2, z: 24.5}
-  - {x: -17.5, y: 3.4, z: 25}
-  - {x: -20.5, y: 3.3, z: 23}
-  - {x: -21, y: 3, z: 19}
-  - {x: -18.5, y: 2.6, z: 14.5}
+  - {x: -11.2, y: 2.8, z: 23.90909}
+  - {x: -15.1, y: 3, z: 28.363636}
+  - {x: -19, y: 3.2, z: 31.545454}
+  - {x: -23.550001, y: 3.4, z: 32.18182}
+  - {x: -27.45, y: 3.3, z: 29.636364}
+  - {x: -28.1, y: 3, z: 24.545454}
+  - {x: -24.85, y: 2.6, z: 18.818182}
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}

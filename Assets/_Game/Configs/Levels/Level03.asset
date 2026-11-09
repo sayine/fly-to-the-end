@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Living room
   _mission: 2
   _objective: Land on the coffee table
-  _start: {x: 0, y: 3.12, z: -21.980001}
+  _start: {x: 0, y: 3.12, z: -29.68}
   _startYaw: 0
   _bookStack: 0
   _surfaceHeight: 0
@@ -26,7 +26,7 @@ MonoBehaviour:
   - 0.35
   _gems: []
   _rings: []
-  _landCenter: {x: -7.6, y: 0.53999996, z: -10}
+  _landCenter: {x: -10.523077, y: 0.53999996, z: -13.333334}
   _landSize: {x: 0.9, y: 1.8}
   _targetRoom:
     m_Center: {x: 0, y: 0, z: 0}

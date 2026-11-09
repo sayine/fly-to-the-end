@@ -7,7 +7,8 @@ namespace Game.Editor
 {
     /// <summary>
     /// Generates the level assets (SPEC §2) from the table below: Configs/Levels/LevelNN.asset, FreeFlight.asset and
-    /// LevelCatalog.asset. Positions use the house layout (RoomLayout) so they stay correct if rooms move.
+    /// LevelCatalog.asset. Positions are on the original floor plan and mapped into the real rooms (RoomLayout.ToWorld),
+    /// so they follow the furniture when rooms change size.
     /// Re-running overwrites the level assets (the table is the source of truth); progress saves are unaffected.
     /// </summary>
     internal static class LevelBuilder
@@ -28,7 +29,7 @@ namespace Game.Editor
             // (LevelLayoutTests checks every target lies flat on its surface).
             var coffee = new Vector3(-7.6f, 0.52f + 0.02f, -10f);
             var dining = new Vector3(-14f, 0.97f + 0.02f, 10.2f);
-            var bed = new Vector3(-11f, 0.44f + 0.02f, 56.9f);   // mattress (PropModels measures it on the model)
+            var bed = new Vector3(-10.73f, 0.44f + 0.02f, 56.7f); // open mattress, clear of the side rail (PropModels measures it)
             var s = RoomLayout.FurnitureScale;
             // More starts (book stacks on the floor or on furniture).
             var hallStart = new Vector3(0f, 2.7f, 3.5f);
@@ -36,9 +37,9 @@ namespace Game.Editor
             var islandTop = 0.9f * s;
             var islandStart = new Vector3(-12.9f, islandTop + 1f, 18f);
             var bunkTop = 1.66f; // top bunk mattress
-            var bunkStart = new Vector3(RoomLayout.Bedroom2.max.x - 0.05f - 0.5f * s, bunkTop + 0.8f, 52f);
+            var bunkStart = new Vector3(RoomLayout.PlanBedroom2.max.x - 0.05f - 0.5f * s, bunkTop + 0.8f, 52f);
             var deskTop = 0.76f * s;
-            var bed1DeskX = RoomLayout.Bedroom1.max.x - 0.05f - 0.4f * s;
+            var bed1DeskX = RoomLayout.PlanBedroom1.max.x - 0.05f - 0.4f * s;
             var bed1DeskStart = new Vector3(bed1DeskX, deskTop + 1.1f, 52f);
             var island = new Vector3(-14f, islandTop + 0.02f, 18f);
             var armchair = new Vector3(8.2f, 0.93f + 0.02f, 11.85f); // seat (the back is on the -Z side)
@@ -81,7 +82,7 @@ namespace Game.Editor
                         Ring(9f, 2.6f, 17f, 90f), Ring(12.5f, 2.5f, 19f, 70f), Ring(16f, 2.4f, 17.4f, 110f),
                     }),
                 Level(10, "Bedtime", "Bedroom", MissionType.Land, "Land on the bed (mind the ceiling fan)",
-                    landingStart, 0f, true, new[] { 0f, 0.9f, 0.45f }, land: bed, landSize: new Vector2(2f, 2.4f)),
+                    landingStart, 0f, true, new[] { 0f, 0.9f, 0.45f }, land: bed, landSize: new Vector2(1.5f, 1.5f)),
 
                 // ---------- 11-30 (Phase 4): every room, one new twist at a time ----------
                 Level(11, "Hall Pass", "Hallway", MissionType.Rings, "Fly through the rings down the hallway",
@@ -144,7 +145,7 @@ namespace Game.Editor
                         Ring(-19.5f, 2.6f, 19.5f, 200f), Ring(-17f, 2.4f, 13.5f, 130f),
                     }),
                 Level(25, "Nap Time", "Bedroom", MissionType.Land, "From the desk, land on the bed",
-                    bed1DeskStart, 300f, true, new[] { 0f, 0.8f, 0.4f }, surface: deskTop, land: bed, landSize: new Vector2(2f, 2.4f)),
+                    bed1DeskStart, 300f, true, new[] { 0f, 0.8f, 0.4f }, surface: deskTop, land: bed, landSize: new Vector2(1.5f, 1.5f)),
                 Level(26, "Toy Box", "Kids' room", MissionType.Gems, "Collect every toy-room gem",
                     bed2Start, 0f, true, new[] { 0.5f, 0.8f, 1f }, gems: new[]
                     {
@@ -191,6 +192,19 @@ namespace Game.Editor
             Vector3 land = default, Vector2 landSize = default, Bounds targetRoom = default, float surface = 0f)
         {
             var level = Asset($"{Folder}/Level{number:00}.asset");
+            // Everything except the living-room shelf (already in the real house) is authored on the floor plan.
+            if (bookStack) start = RoomLayout.ToWorld(start);
+            if (gems != null)
+            {
+                gems = (Vector3[])gems.Clone();
+                for (var i = 0; i < gems.Length; i++) gems[i] = RoomLayout.ToWorld(gems[i]);
+            }
+            if (rings != null)
+            {
+                rings = (RingSpec[])rings.Clone();
+                for (var i = 0; i < rings.Length; i++) rings[i].Position = RoomLayout.ToWorld(rings[i].Position);
+            }
+            if (mission == MissionType.Land) land = RoomLayout.ToWorld(land);
             level.Define(title, room, mission, objective, start, yaw, bookStack, surface, stars, gems, rings, land, landSize, targetRoom);
             EditorUtility.SetDirty(level);
             return level;

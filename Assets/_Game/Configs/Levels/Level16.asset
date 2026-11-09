@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Bedroom
   _mission: 3
   _objective: Collect the gems by the window
-  _start: {x: -2.69, y: 2.316, z: 52}
+  _start: {x: -2.0350006, y: 2.316, z: 68.666664}
   _startYaw: 270
   _bookStack: 1
   _surfaceHeight: 1.216
@@ -25,12 +25,12 @@ MonoBehaviour:
   - 0.8
   - 1
   _gems:
-  - {x: -5.5, y: 2.3, z: 52.5}
-  - {x: -8.5, y: 2.2, z: 53.5}
-  - {x: -11.5, y: 2.1, z: 54}
-  - {x: -14.5, y: 2.1, z: 53.5}
-  - {x: -17, y: 2.3, z: 52.5}
-  - {x: -15, y: 2.8, z: 50.5}
+  - {x: -6.249999, y: 2.3, z: 69.333336}
+  - {x: -10.75, y: 2.2, z: 70.666664}
+  - {x: -15.25, y: 2.1, z: 71.333336}
+  - {x: -19.75, y: 2.1, z: 70.666664}
+  - {x: -23.5, y: 2.3, z: 69.333336}
+  - {x: -20.5, y: 2.8, z: 66.666664}
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}

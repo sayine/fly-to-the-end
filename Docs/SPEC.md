@@ -27,7 +27,10 @@ flowing ribbons, dust motes and floor rings. Strengths in `WindConfig`, per-zone
 
 ## 1. The house (one connected map)
 One big single-floor house, built by the scene generator. Furniture is generated at real size × 1.6 so the 25 cm
-plane feels like a toy. Ceilings 6 m, hallways 6 m wide, 5 m tall, doorways 5 m wide.
+plane feels like a toy. One ceiling height everywhere (7 m), a 10 m wide hallway, doorways 8 m wide and full height
+with round columns at their edges, and rounded inside corners, so flying between rooms is smooth and the chase
+camera never meets a step. Furniture, wind and levels are authored on the original floor plan and mapped into the
+bigger rooms (`RoomLayout.ToWorld`).
 
 ```
  z ↑ (north)
@@ -44,12 +47,12 @@ plane feels like a toy. Ceilings 6 m, hallways 6 m wide, 5 m tall, doorways 5 m 
 
 | Room | Size (W × D m) | Wind | Typical missions |
 |---|---|---|---|
-| Living room | 26 × 24 | floor fan, radiator thermal, AC vent | tutorial levels, airtime, gems |
-| Hallway (spine) | 6 × 40 | helper fans | reach-a-room, rings |
-| Kitchen | 20 × 22 | extractor hood updraft, oven thermal, fridge cold downdraft | land on table/counter, gems |
-| Bedroom 1 | 18 × 18 | ceiling fan, window gust | land on bed, narrow passages |
-| Bedroom 2 | 16 × 18 | desk fan, radiator | rings through toy shelves, gems |
-| Study | 16 × 18 | desk fan, lamp thermal | narrow gaps between bookcases, land on desk |
+| Living room | 36 × 32 | floor fan, radiator thermal, AC vent | tutorial levels, airtime, gems |
+| Hallway (spine) | 10 × 43 | helper fans | reach-a-room, rings |
+| Kitchen | 26 × 28 | extractor hood updraft, oven thermal, fridge cold downdraft | land on table/counter, gems |
+| Bedroom 1 | 27 × 24 | ceiling fan, window gust | land on bed, narrow passages |
+| Bedroom 2 | 24 × 22 | desk fan, radiator | rings through toy shelves, gems |
+| Study | 22 × 22 | desk fan, lamp thermal | narrow gaps between bookcases, land on desk |
 
 Each level chooses a **start point** (a shelf, counter, desk or bed in some room) and spawns its own mission items,
 so new levels need no new geometry.

@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Kids' room
   _mission: 1
   _objective: 'Find the warm radiator air: stay up 15 s'
-  _start: {x: 6, y: 2.7, z: 37.5}
+  _start: {x: 8.400001, y: 2.7, z: 49}
   _startYaw: 0
   _bookStack: 1
   _surfaceHeight: 0

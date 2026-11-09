@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Study
   _mission: 1
   _objective: Stay up 30 s in the study
-  _start: {x: 5.6, y: 2.7, z: 17}
+  _start: {x: 8.2, y: 2.7, z: 22}
   _startYaw: 90
   _bookStack: 1
   _surfaceHeight: 0

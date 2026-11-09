@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Living room
   _mission: 5
   _objective: Fly down the hallway to the landing
-  _start: {x: 0, y: 3.12, z: -21.980001}
+  _start: {x: 0, y: 3.12, z: -29.68}
   _startYaw: 0
   _bookStack: 0
   _surfaceHeight: 0
@@ -29,5 +29,5 @@ MonoBehaviour:
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}
   _targetRoom:
-    m_Center: {x: 0, y: 2.5, z: 37.5}
-    m_Extent: {x: 10, y: 2.5, z: 2.5}
+    m_Center: {x: 0, y: 3.5, z: 49}
+    m_Extent: {x: 14, y: 3.5, z: 4}
