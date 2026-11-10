@@ -12,19 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level27
   m_EditorClassIdentifier: 
-  _title: Night Shift
-  _room: Study
-  _mission: 1
-  _objective: Stay up 30 s in the study
-  _start: {x: 8.2, y: 2.7, z: 22}
-  _startYaw: 90
+  _title: Breezy
+  _room: Bedroom
+  _mission: 3
+  _objective: A full loop of the bedroom
+  _start: {x: -2.1849995, y: 2.506, z: 68.666664}
+  _startYaw: 270
   _bookStack: 1
-  _surfaceHeight: 0
+  _surfaceHeight: 1.406
   _stars:
-  - 30
-  - 42
-  - 55
-  _gems: []
+  - 0.5
+  - 0.8
+  - 1
+  _gems:
+  - {x: -6.9999995, y: 2.3, z: 69.333336}
+  - {x: -12.250001, y: 2.2, z: 70.666664}
+  - {x: -17.5, y: 2.3, z: 70.666664}
+  - {x: -22.75, y: 2.5, z: 69.333336}
+  - {x: -25, y: 2.8, z: 65.333336}
+  - {x: -22, y: 3, z: 59.333332}
+  - {x: -16, y: 2.8, z: 57.333332}
+  - {x: -9.250001, y: 2.6, z: 59.333332}
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}

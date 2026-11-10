@@ -12,22 +12,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level03
   m_EditorClassIdentifier: 
-  _title: Touchdown
+  _title: Hoops
   _room: Living room
-  _mission: 2
-  _objective: Land on the coffee table
-  _start: {x: 0, y: 3.12, z: -29.68}
+  _mission: 4
+  _objective: Fly through the rings in order
+  _start: {x: 0, y: 3.595, z: -29.5675}
   _startYaw: 0
   _bookStack: 0
   _surfaceHeight: 0
   _stars:
   - 0
-  - 0.7
-  - 0.35
+  - 12
+  - 8
   _gems: []
-  _rings: []
-  _landCenter: {x: -10.523077, y: 0.53999996, z: -13.333334}
-  _landSize: {x: 0.9, y: 1.8}
+  _rings:
+  - Position: {x: 0, y: 3.1, z: -23.333332}
+    Yaw: 0
+    Radius: 1.3
+  - Position: {x: 2.4923086, y: 2.9, z: -16.666668}
+    Yaw: 20
+    Radius: 1.3
+  - Position: {x: 3.3230767, y: 2.7, z: -10}
+    Yaw: 0
+    Radius: 1.3
+  - Position: {x: 0.83077025, y: 2.6, z: -3.333334}
+    Yaw: -20
+    Radius: 1.3
+  _landCenter: {x: 0, y: 0, z: 0}
+  _landSize: {x: 0, y: 0}
   _targetRoom:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}

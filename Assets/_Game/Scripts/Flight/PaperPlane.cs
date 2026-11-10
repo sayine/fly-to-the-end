@@ -8,8 +8,8 @@ namespace Game.Flight
     /// <summary>
     /// Rigidbody driver for the paper plane. Ready: kinematic on the launch pad. Flying: FlightModel forces in
     /// FixedUpdate, rotation set from the model. Crashed: plain physics (full gravity, free rotation) so the
-    /// crash tumble plays out. Any collision while flying is a crash, except a gentle touchdown on a
-    /// LandingTarget, which is a landing (Landed: the plane settles kinematic where it touched).
+    /// crash tumble plays out. Any collision while flying is a crash, except touching a LandingTarget: any touch,
+    /// soft or hard, counts as a landing (arcade-friendly; Landed: the plane settles kinematic where it touched).
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public sealed class PaperPlane : MonoBehaviour
@@ -40,7 +40,7 @@ namespace Game.Flight
         /// <summary>Raised once per flight, with the collider that was hit (null for out-of-bounds).</summary>
         public event Action<Collider> Crashed;
 
-        /// <summary>Raised once per flight on a gentle touchdown on a landing target, with the contact point.</summary>
+        /// <summary>Raised once per flight when the plane touches a landing target, with the contact point.</summary>
         public event Action<LandingTarget, Vector3> Landed;
 
         public Phase CurrentPhase { get; private set; } = Phase.Ready;
@@ -169,8 +169,9 @@ namespace Game.Flight
         private void OnCollisionEnter(Collision collision)
         {
             if (CurrentPhase != Phase.Flying) return;
-            if (collision.collider.TryGetComponent<LandingTarget>(out var target) && IsGentle(collision, out var point))
+            if (collision.collider.TryGetComponent<LandingTarget>(out var target) && collision.contactCount > 0)
             {
+                var point = collision.GetContact(0).point;
                 CurrentPhase = Phase.Landed;
                 EndGrace();
                 EndInvulnerable();
@@ -186,19 +187,6 @@ namespace Game.Flight
             }
             if (IsInvulnerable) return; // bounce off, keep flying
             Crash(collision.collider);
-        }
-
-        /// <summary>Soft enough to count as a landing: slow descent onto an upward-facing surface.</summary>
-        private bool IsGentle(Collision collision, out Vector3 point)
-        {
-            point = Vector3.zero;
-            if (collision.contactCount == 0) return false;
-            var contact = collision.GetContact(0);
-            point = contact.point;
-            var velocity = collision.relativeVelocity; // the plane's speed into the surface
-            return contact.normal.y >= _config.LandMinNormalY
-                && Mathf.Abs(velocity.y) <= _config.LandMaxVerticalSpeed
-                && velocity.magnitude <= _config.LandMaxSpeed;
         }
 
         private void EndGrace()

@@ -115,12 +115,15 @@ namespace Game.Editor
         // ---------- HUD ----------
         private static MissionHudView BuildHud(Transform canvas)
         {
-            var root = new GameObject("MissionHud", typeof(RectTransform)).GetComponent<RectTransform>();
+            // Inside the safe area like the HUD, so the notch moves both together and nothing overlaps the timer.
+            var root = new GameObject("MissionHud", typeof(RectTransform), typeof(Template.UI.Widgets.SafeArea)).GetComponent<RectTransform>();
             root.SetParent(canvas, false);
             UIBuilder.Stretch(root);
 
             // Intro (while aiming): level, room and objective on a paper card near the top.
-            var intro = PaperKit.Card(root, "Intro", new Vector2(0.5f, 0.8f), new Vector2(920f, 250f));
+            // Below the timer pill (top 50-170) and the progress line, with room to spare.
+            var intro = PaperKit.Card(root, "Intro", new Vector2(0.5f, 1f), new Vector2(920f, 250f));
+            intro.anchoredPosition = new Vector2(0f, -470f);
             intro.Find("Face").GetComponent<Image>().raycastTarget = false; // never blocks steering
             var title = PaperKit.Txt(intro, "Title", "LEVEL 1", 52, new Vector2(0.5f, 0.74f), new Vector2(860f, 76f), PaperKit.Coral.Face);
             var objective = PaperKit.Txt(intro, "Objective", "", 48, new Vector2(0.5f, 0.34f), new Vector2(860f, 120f), PaperKit.Ink);
@@ -130,7 +133,7 @@ namespace Game.Editor
             var progressImage = PaperKit.Img(root, "Progress", PaperKit.Rounded, new Color(0.1f, 0.14f, 0.25f, 0.45f), new Vector2(0.5f, 1f),
                 new Vector2(720f, 92f), true, 1.4f);
             var progressRoot = progressImage.rectTransform;
-            progressRoot.anchoredPosition = new Vector2(0f, -250f);
+            progressRoot.anchoredPosition = new Vector2(0f, -275f); // under the timer pill (which ends at -170)
             var progress = PaperKit.Txt(progressRoot, "Text", "", 46, new Vector2(0.5f, 0.5f), new Vector2(700f, 88f), Color.white,
                 PaperKit.TextStyle.Shadow);
 

@@ -12,22 +12,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level05
   m_EditorClassIdentifier: 
-  _title: Down the Hall
-  _room: Living room
-  _mission: 5
-  _objective: Fly down the hallway to the landing
-  _start: {x: 0, y: 3.12, z: -29.68}
-  _startYaw: 0
-  _bookStack: 0
+  _title: Kitchen Loop
+  _room: Kitchen
+  _mission: 3
+  _objective: Collect the gems around the kitchen
+  _start: {x: -8.08, y: 2.7, z: 22}
+  _startYaw: 270
+  _bookStack: 1
   _surfaceHeight: 0
   _stars:
-  - 0
-  - 20
-  - 14
-  _gems: []
+  - 0.5
+  - 0.8
+  - 1
+  _gems:
+  - {x: -11.2, y: 2.6, z: 22}
+  - {x: -15.1, y: 2.5, z: 19.454546}
+  - {x: -19, y: 2.4, z: 17.672728}
+  - {x: -22.9, y: 2.4, z: 17.163635}
+  - {x: -26.15, y: 2.5, z: 19.454546}
+  - {x: -26.8, y: 2.6, z: 23.90909}
+  - {x: -24.199999, y: 2.7, z: 27.727272}
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}
   _targetRoom:
-    m_Center: {x: 0, y: 3.5, z: 49}
-    m_Extent: {x: 14, y: 3.5, z: 4}
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}

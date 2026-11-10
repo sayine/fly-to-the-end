@@ -12,22 +12,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level23
   m_EditorClassIdentifier: 
-  _title: Bedtime Story
-  _room: Hallway
-  _mission: 5
-  _objective: Find your way to the kids' room
-  _start: {x: 0, y: 2.7, z: 4.257576}
+  _title: Toy Box
+  _room: Kids' room
+  _mission: 3
+  _objective: Collect every toy-room gem
+  _start: {x: 8.400001, y: 2.7, z: 49}
   _startYaw: 0
   _bookStack: 1
   _surfaceHeight: 0
   _stars:
-  - 0
-  - 14
-  - 10
-  _gems: []
+  - 0.5
+  - 0.8
+  - 1
+  _gems:
+  - {x: 6, y: 2.6, z: 57.055557}
+  - {x: 4.5, y: 2.4, z: 61.333332}
+  - {x: 3.2999997, y: 2.8, z: 65}
+  - {x: 5.25, y: 3.4, z: 69.27778}
+  - {x: 9, y: 3.6, z: 72.333336}
+  - {x: 13.5, y: 3.2, z: 72.94444}
+  - {x: 17.25, y: 2.8, z: 69.888885}
+  - {x: 18.75, y: 2.5, z: 65.611115}
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}
   _targetRoom:
-    m_Center: {x: 12, y: 3.5, z: 65}
-    m_Extent: {x: 12, y: 3.5, z: 11}
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}

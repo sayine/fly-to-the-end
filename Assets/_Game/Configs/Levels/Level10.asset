@@ -12,22 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level10
   m_EditorClassIdentifier: 
-  _title: Bedtime
-  _room: Bedroom
-  _mission: 2
-  _objective: Land on the bed (mind the ceiling fan)
-  _start: {x: -8.4, y: 2.7, z: 48.2}
+  _title: Warm Air
+  _room: Kids' room
+  _mission: 1
+  _objective: 'Find the warm radiator air: stay up 15 s'
+  _start: {x: 8.400001, y: 2.7, z: 49}
   _startYaw: 0
   _bookStack: 1
   _surfaceHeight: 0
   _stars:
-  - 0
-  - 0.9
-  - 0.45
+  - 15
+  - 22
+  - 30
   _gems: []
   _rings: []
-  _landCenter: {x: -14.094998, y: 0.46, z: 74.933334}
-  _landSize: {x: 1.5, y: 1.5}
+  _landCenter: {x: 0, y: 0, z: 0}
+  _landSize: {x: 0, y: 0}
   _targetRoom:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}

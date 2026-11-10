@@ -18,7 +18,7 @@ namespace Game.Editor
     /// </summary>
     internal static class RoomLayout
     {
-        public const float FurnitureScale = 1.6f;
+        public const float FurnitureScale = 1.85f; // real size × this: a 25 cm plane in a big home
         private const float WallThickness = 0.5f;
         private const float DoorWidth = 8f;
         /// <summary>One ceiling height for the whole house (no steps between rooms, hallway and doorways).</summary>

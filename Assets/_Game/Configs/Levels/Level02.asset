@@ -16,7 +16,7 @@ MonoBehaviour:
   _room: Living room
   _mission: 3
   _objective: Collect the gems
-  _start: {x: 0, y: 3.12, z: -29.68}
+  _start: {x: 0, y: 3.595, z: -29.5675}
   _startYaw: 0
   _bookStack: 0
   _surfaceHeight: 0

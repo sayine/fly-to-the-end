@@ -12,22 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level29
   m_EditorClassIdentifier: 
-  _title: House Tour
-  _room: Living room
-  _mission: 5
-  _objective: From the shelf all the way to the bedroom
-  _start: {x: 0, y: 3.12, z: -29.68}
-  _startYaw: 0
-  _bookStack: 0
-  _surfaceHeight: 0
+  _title: Nap Time
+  _room: Bedroom
+  _mission: 2
+  _objective: From the desk, land on the bed
+  _start: {x: -2.1849995, y: 2.506, z: 68.666664}
+  _startYaw: 300
+  _bookStack: 1
+  _surfaceHeight: 1.406
   _stars:
   - 0
-  - 24
-  - 18
+  - 0.8
+  - 0.4
   _gems: []
   _rings: []
-  _landCenter: {x: 0, y: 0, z: 0}
-  _landSize: {x: 0, y: 0}
+  _landCenter: {x: -14.094998, y: 0.52875, z: 74.933334}
+  _landSize: {x: 1.5, y: 1.5}
   _targetRoom:
-    m_Center: {x: -14.5, y: 3.5, z: 66}
-    m_Extent: {x: 13.5, y: 3.5, z: 12}
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}

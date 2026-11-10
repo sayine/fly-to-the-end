@@ -16,10 +16,10 @@ MonoBehaviour:
   _room: Kitchen
   _mission: 4
   _objective: 'Kitchen, hallway, study: through every ring'
-  _start: {x: -17.57, y: 2.44, z: 23.272728}
+  _start: {x: -17.57, y: 2.665, z: 23.272728}
   _startYaw: 90
   _bookStack: 1
-  _surfaceHeight: 1.4399999
+  _surfaceHeight: 1.665
   _stars:
   - 0
   - 8

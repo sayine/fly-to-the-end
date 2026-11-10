@@ -12,20 +12,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level07
   m_EditorClassIdentifier: 
-  _title: Hot Stove
-  _room: Kitchen
-  _mission: 1
-  _objective: 'Ride the warm air over the stove: stay up 20 s'
-  _start: {x: -8.08, y: 2.7, z: 22}
-  _startYaw: 270
+  _title: Study Slalom
+  _room: Study
+  _mission: 4
+  _objective: Weave through the rings
+  _start: {x: 8.2, y: 2.7, z: 22}
+  _startYaw: 90
   _bookStack: 1
   _surfaceHeight: 0
   _stars:
-  - 20
-  - 30
-  - 45
+  - 0
+  - 6
+  - 4
   _gems: []
-  _rings: []
+  _rings:
+  - Position: {x: 12.875, y: 2.6, z: 22}
+    Yaw: 90
+    Radius: 1.3
+  - Position: {x: 17.6875, y: 2.5, z: 24.444445}
+    Yaw: 70
+    Radius: 1.3
+  - Position: {x: 22.5, y: 2.4, z: 22.48889}
+    Yaw: 110
+    Radius: 1.3
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}
   _targetRoom:

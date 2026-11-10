@@ -12,26 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level06
   m_EditorClassIdentifier: 
-  _title: Kitchen Loop
+  _title: Hot Stove
   _room: Kitchen
-  _mission: 3
-  _objective: Collect the gems around the kitchen
+  _mission: 1
+  _objective: 'Ride the warm air over the stove: stay up 20 s'
   _start: {x: -8.08, y: 2.7, z: 22}
   _startYaw: 270
   _bookStack: 1
   _surfaceHeight: 0
   _stars:
-  - 0.5
-  - 0.8
-  - 1
-  _gems:
-  - {x: -11.2, y: 2.6, z: 22}
-  - {x: -15.1, y: 2.5, z: 19.454546}
-  - {x: -19, y: 2.4, z: 17.672728}
-  - {x: -22.9, y: 2.4, z: 17.163635}
-  - {x: -26.15, y: 2.5, z: 19.454546}
-  - {x: -26.8, y: 2.6, z: 23.90909}
-  - {x: -24.199999, y: 2.7, z: 27.727272}
+  - 20
+  - 30
+  - 45
+  _gems: []
   _rings: []
   _landCenter: {x: 0, y: 0, z: 0}
   _landSize: {x: 0, y: 0}

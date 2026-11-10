@@ -12,22 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7948558bada554c5caf2258f7104bf2b, type: 3}
   m_Name: Level25
   m_EditorClassIdentifier: 
-  _title: Nap Time
-  _room: Bedroom
-  _mission: 2
-  _objective: From the desk, land on the bed
-  _start: {x: -2.0350006, y: 2.316, z: 68.666664}
-  _startYaw: 300
+  _title: Night Shift
+  _room: Study
+  _mission: 1
+  _objective: Stay up 30 s in the study
+  _start: {x: 8.2, y: 2.7, z: 22}
+  _startYaw: 90
   _bookStack: 1
-  _surfaceHeight: 1.216
+  _surfaceHeight: 0
   _stars:
-  - 0
-  - 0.8
-  - 0.4
+  - 30
+  - 42
+  - 55
   _gems: []
   _rings: []
-  _landCenter: {x: -14.094998, y: 0.46, z: 74.933334}
-  _landSize: {x: 1.5, y: 1.5}
+  _landCenter: {x: 0, y: 0, z: 0}
+  _landSize: {x: 0, y: 0}
   _targetRoom:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}

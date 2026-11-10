@@ -27,7 +27,7 @@ namespace Game.Tests
         private MissionDirector _mission;
 
         // Level numbers (1-based) in LevelBuilder's table.
-        private const int AirtimeLevel = 1, GemsLevel = 2, LandLevel = 3, RingsLevel = 4, ReachLevel = 5;
+        private const int AirtimeLevel = 1, GemsLevel = 2, RingsLevel = 3, ReachLevel = 4, LandLevel = 14;
 
         [UnityTest]
         public IEnumerator Airtime_StayingUpPastTheGoal_Wins()
@@ -55,20 +55,30 @@ namespace Game.Tests
             _plane.PlaceAt(target.transform.position + Vector3.up * 0.35f, Quaternion.identity);
             Launch(new Vector3(0f, -1.2f, 0.2f));
             yield return WaitFor(() => _plane.CurrentPhase != PaperPlane.Phase.Flying, 5f, "touchdown");
-            Assert.AreEqual(PaperPlane.Phase.Landed, _plane.CurrentPhase, "a soft touchdown is a landing");
+            Assert.AreEqual(PaperPlane.Phase.Landed, _plane.CurrentPhase, "touching the target is a landing");
             yield return ExpectState(GameState.LevelComplete);
             Assert.AreEqual(3, Progress.StarsOf(LandLevel - 1), "dead centre = 3 stars");
         }
 
         [UnityTest]
-        public IEnumerator Land_HardImpact_Fails()
+        public IEnumerator Land_HardImpactOnTarget_StillWins()
         {
             yield return StartLevel(LandLevel);
             var target = Object.FindFirstObjectByType<LandingTarget>();
             _plane.PlaceAt(target.transform.position + Vector3.up * 1.2f, Quaternion.identity);
             Launch(new Vector3(0f, -7f, 0f));
             yield return WaitFor(() => _plane.CurrentPhase != PaperPlane.Phase.Flying, 5f, "impact");
-            Assert.AreEqual(PaperPlane.Phase.Crashed, _plane.CurrentPhase);
+            Assert.AreEqual(PaperPlane.Phase.Landed, _plane.CurrentPhase, "any touch on the target counts (arcade rule)");
+            yield return ExpectState(GameState.LevelComplete);
+        }
+
+        [UnityTest]
+        public IEnumerator Land_CrashingOffTarget_Fails()
+        {
+            yield return StartLevel(LandLevel);
+            Launch(Vector3.forward * 5f);
+            yield return null;
+            _plane.Crash(null);
             yield return ExpectState(GameState.GameOver);
         }
 
